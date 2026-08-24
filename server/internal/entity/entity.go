@@ -40,3 +40,28 @@ type Projectile struct {
 	TTL     int32   // ticks remaining before removal
 	Radius  float32 // hit-detection radius (varies by element)
 }
+
+// AIState drives mob behaviour.
+type AIState uint8
+
+const (
+	AIIdle  AIState = iota
+	AIChase         // moving toward target player
+)
+
+// AI is attached to mob entities.
+type AI struct {
+	State      AIState
+	TargetID   EntityID
+	MeleeTimer int32 // ticks until next melee hit is allowed
+}
+
+// ItemType identifies what a floor item does when picked up.
+type ItemType uint8
+
+const (
+	ItemHealth ItemType = iota // restores HP
+)
+
+// Item is attached to floor-item entities.
+type Item struct{ Kind ItemType }

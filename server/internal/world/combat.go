@@ -199,15 +199,25 @@ func systemProjectile(w *World, dt float32) {
 }
 
 // systemRespawn teleports any player whose HP hit zero back to spawn.
+// In a dungeon zone, uses the dungeon's spawn point; otherwise uses the
+// open-world constant.
 func systemRespawn(w *World) {
+	spawnX, spawnY := RespawnX, RespawnY
+	if w.Dungeon != nil {
+		spawnX = w.Dungeon.PlayerSpawn[0]
+		spawnY = w.Dungeon.PlayerSpawn[1]
+	}
 	for id, h := range w.healths {
 		if _, isProj := w.projectiles[id]; isProj {
 			continue
 		}
+		if _, isMob := w.ais[id]; isMob {
+			continue // mobs die permanently, handled by systemAI
+		}
 		if h.Current <= 0 {
 			h.Current = h.Max
 			w.healths[id] = h
-			w.positions[id] = entity.Position{X: RespawnX, Y: RespawnY}
+			w.positions[id] = entity.Position{X: spawnX, Y: spawnY}
 		}
 	}
 }

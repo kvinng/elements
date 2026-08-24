@@ -60,13 +60,10 @@ func client(name, element string, mx, my, aimX, aimY float32, fire bool, done <-
 					if e.ID == myID {
 						tag = " ◄"
 					}
-					kind := "player"
-					if e.Kind == 1 {
-						kind = "proj "
-					}
 					elName := elementNames[e.Element]
+					kindStr := map[uint8]string{0: "player", 1: "proj  ", 2: "mob   ", 3: "item  "}[e.Kind]
 					fmt.Printf("  [%-5s] tick=%-5d %s #%-2d %-8s [%-5s] x=%-7.0f y=%-7.0f hp=%d/%d%s\n",
-						name, m.Tick, kind, e.ID, e.Name, elName, e.X, e.Y, e.HP, e.MaxHP, tag)
+						name, m.Tick, kindStr, e.ID, e.Name, elName, e.X, e.Y, e.HP, e.MaxHP, tag)
 				}
 			}
 		}

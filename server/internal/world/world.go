@@ -3,8 +3,10 @@ package world
 import (
 	"context"
 	"log/slog"
+	"math/rand"
 	"time"
 
+	"github.com/kving/games/elements/server/internal/dungeon"
 	"github.com/kving/games/elements/server/internal/entity"
 )
 
@@ -13,12 +15,14 @@ const (
 	TickDuration = time.Second / TickRate // 50 ms
 )
 
-// EntityKind distinguishes players from projectiles in snapshots.
+// EntityKind distinguishes entity types in snapshots.
 type EntityKind uint8
 
 const (
 	KindPlayer     EntityKind = 0
 	KindProjectile EntityKind = 1
+	KindMob        EntityKind = 2
+	KindItem       EntityKind = 3
 )
 
 // InputEvent pairs an incoming input with the entity that sent it.
@@ -60,16 +64,20 @@ type WorldSnapshot struct {
 // Only the goroutine running Run() may read or write component tables.
 // All external communication goes through the exported channels.
 type World struct {
-	nextID     entity.EntityID
-	positions  map[entity.EntityID]entity.Position
-	healths    map[entity.EntityID]entity.Health
-	elements   map[entity.EntityID]entity.Element
-	inputs     map[entity.EntityID]entity.InputState
-	names      map[entity.EntityID]string
+	nextID      entity.EntityID
+	positions   map[entity.EntityID]entity.Position
+	healths     map[entity.EntityID]entity.Health
+	elements    map[entity.EntityID]entity.Element
+	inputs      map[entity.EntityID]entity.InputState
+	names       map[entity.EntityID]string
 	projectiles map[entity.EntityID]entity.Projectile
-	cooldowns  map[entity.EntityID]int32
+	cooldowns   map[entity.EntityID]int32
+	ais         map[entity.EntityID]entity.AI
+	items       map[entity.EntityID]entity.Item
 
-	tick uint64
+	tick   uint64
+	rng    *rand.Rand
+	Dungeon *dungeon.Dungeon // nil for open-world zones; read-only after New*
 
 	InputCh    chan InputEvent
 	SnapshotCh chan WorldSnapshot
@@ -77,7 +85,7 @@ type World struct {
 	DespawnCh  chan entity.EntityID
 }
 
-func New() *World {
+func newWorld(rng *rand.Rand) *World {
 	return &World{
 		nextID:      1,
 		positions:   make(map[entity.EntityID]entity.Position),
@@ -87,12 +95,38 @@ func New() *World {
 		names:       make(map[entity.EntityID]string),
 		projectiles: make(map[entity.EntityID]entity.Projectile),
 		cooldowns:   make(map[entity.EntityID]int32),
+		ais:         make(map[entity.EntityID]entity.AI),
+		items:       make(map[entity.EntityID]entity.Item),
+		rng:         rng,
 
 		InputCh:    make(chan InputEvent, 256),
 		SnapshotCh: make(chan WorldSnapshot, 8),
 		SpawnCh:    make(chan SpawnRequest, 16),
 		DespawnCh:  make(chan entity.EntityID, 16),
 	}
+}
+
+// New creates an open-world zone (no dungeon tiles, no mobs).
+func New() *World { return newWorld(rand.New(rand.NewSource(0))) }
+
+// NewDungeon generates a dungeon zone: BSP tilemap + pre-spawned mobs.
+func NewDungeon(seed int64) *World {
+	rng := rand.New(rand.NewSource(seed))
+	w := newWorld(rng)
+	w.Dungeon = dungeon.Generate(80, 60, rng)
+
+	// Pre-spawn mobs — safe because Run() hasn't started yet.
+	for _, ms := range w.Dungeon.MobSpawns {
+		id := w.nextID
+		w.nextID++
+		w.positions[id] = entity.Position{X: ms.X, Y: ms.Y}
+		w.healths[id] = entity.Health{Current: 60, Max: 60}
+		el := entity.ElementType(ms.Element)
+		w.elements[id] = entity.Element{Kind: el}
+		w.names[id] = "Mob"
+		w.ais[id] = entity.AI{State: entity.AIIdle}
+	}
+	return w
 }
 
 // Run starts the deterministic 20 Hz simulation loop, blocking until ctx is cancelled.
@@ -131,6 +165,8 @@ func (w *World) step(dt float32) {
 	systemProjectile(w, dt)
 	systemCollision(w)
 	systemRespawn(w)
+	systemAI(w, dt, w.rng)
+	systemItems(w)
 	w.emitSnapshot()
 }
 
@@ -162,6 +198,8 @@ func (w *World) processDespawns() {
 			delete(w.inputs, id)
 			delete(w.names, id)
 			delete(w.cooldowns, id)
+			delete(w.ais, id)
+			delete(w.items, id)
 		default:
 			return
 		}
@@ -186,9 +224,19 @@ func (w *World) emitSnapshot() {
 	}
 	for id, pos := range w.positions {
 		h := w.healths[id]
-		kind := KindPlayer
-		if _, isProj := w.projectiles[id]; isProj {
+		_, isProj := w.projectiles[id]
+		_, isMob := w.ais[id]
+		_, isItem := w.items[id]
+		var kind EntityKind
+		switch {
+		case isProj:
 			kind = KindProjectile
+		case isMob:
+			kind = KindMob
+		case isItem:
+			kind = KindItem
+		default:
+			kind = KindPlayer
 		}
 		snap.Entities = append(snap.Entities, EntitySnapshot{
 			ID:      id,

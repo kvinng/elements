@@ -34,24 +34,35 @@ type Client struct {
 	hub      *Hub
 }
 
-// writePump sends the welcome message and then relays pre-marshalled frames.
-// Exits when the hub closes the send channel.
+// writePump sends the welcome message, then the dungeon map (if any), then
+// relays pre-marshalled snapshot/chat frames. Exits when send is closed.
 func (c *Client) writePump() {
 	defer c.conn.Close()
+
+	send := func(data []byte) bool {
+		c.conn.SetWriteDeadline(time.Now().Add(writeTimeout))
+		return c.conn.WriteMessage(websocket.TextMessage, data) == nil
+	}
 
 	welcome, _ := json.Marshal(serverMsg{
 		Type:     "welcome",
 		EntityID: c.entityID,
 		Name:     c.name,
 	})
-	c.conn.SetWriteDeadline(time.Now().Add(writeTimeout))
-	if err := c.conn.WriteMessage(websocket.TextMessage, welcome); err != nil {
+	if !send(welcome) {
 		return
 	}
 
+	// Send dungeon map immediately after welcome so the client can start
+	// rendering tiles before the first snapshot arrives.
+	if c.hub.mapBytes != nil {
+		if !send(c.hub.mapBytes) {
+			return
+		}
+	}
+
 	for data := range c.send {
-		c.conn.SetWriteDeadline(time.Now().Add(writeTimeout))
-		if err := c.conn.WriteMessage(websocket.TextMessage, data); err != nil {
+		if !send(data) {
 			return
 		}
 	}

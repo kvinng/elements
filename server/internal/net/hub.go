@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/websocket"
+	"github.com/kving/games/elements/server/internal/dungeon"
 	"github.com/kving/games/elements/server/internal/entity"
 	"github.com/kving/games/elements/server/internal/world"
 )
@@ -25,6 +26,13 @@ type serverMsg struct {
 	Name     string                 `json:"name,omitempty"`
 	Text     string                 `json:"text,omitempty"`
 	Entities []world.EntitySnapshot `json:"entities,omitempty"`
+	// map message fields
+	MapWidth    int    `json:"map_width,omitempty"`
+	MapHeight   int    `json:"map_height,omitempty"`
+	TileSize    int    `json:"tile_size,omitempty"`
+	Tiles       []byte `json:"tiles,omitempty"` // flat [height*width] array, JSON as base64
+	SpawnX      float32 `json:"spawn_x,omitempty"`
+	SpawnY      float32 `json:"spawn_y,omitempty"`
 }
 
 // ChatEvent is a chat message from one client to be broadcast to all.
@@ -42,16 +50,40 @@ type Hub struct {
 	register   chan *Client
 	unregister chan *Client
 	chatCh     chan ChatEvent
+	mapBytes   []byte // pre-encoded map message, sent once per client on connect
 }
 
 func NewHub(zone *world.World) *Hub {
-	return &Hub{
+	h := &Hub{
 		zone:       zone,
 		clients:    make(map[*Client]struct{}),
 		register:   make(chan *Client, 8),
 		unregister: make(chan *Client, 8),
 		chatCh:     make(chan ChatEvent, 32),
 	}
+	if zone.Dungeon != nil {
+		h.mapBytes = buildMapMsg(zone.Dungeon)
+	}
+	return h
+}
+
+func buildMapMsg(d *dungeon.Dungeon) []byte {
+	flat := make([]byte, d.Width*d.Height)
+	for y, row := range d.Tiles {
+		for x, t := range row {
+			flat[y*d.Width+x] = byte(t)
+		}
+	}
+	data, _ := json.Marshal(serverMsg{
+		Type:      "map",
+		MapWidth:  d.Width,
+		MapHeight: d.Height,
+		TileSize:  dungeon.TileSize,
+		Tiles:     flat,
+		SpawnX:    d.PlayerSpawn[0],
+		SpawnY:    d.PlayerSpawn[1],
+	})
+	return data
 }
 
 // Run is the hub event loop. It must run in its own goroutine.
@@ -146,9 +178,15 @@ func (h *Hub) ServeWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	spawnX, spawnY := world.RespawnX, world.RespawnY
+	if h.zone.Dungeon != nil {
+		spawnX = h.zone.Dungeon.PlayerSpawn[0]
+		spawnY = h.zone.Dungeon.PlayerSpawn[1]
+	}
+
 	result := make(chan entity.EntityID, 1)
 	h.zone.SpawnCh <- world.SpawnRequest{
-		Pos:    entity.Position{X: world.RespawnX, Y: world.RespawnY},
+		Pos:    entity.Position{X: spawnX, Y: spawnY},
 		HP:     world.BaseHP(el),
 		El:     entity.Element{Kind: el, Level: 1},
 		Name:   name,

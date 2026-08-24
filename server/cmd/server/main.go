@@ -25,7 +25,7 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
-	zone := world.New()
+	zone := world.NewDungeon(42) // seed 42 → reproducible layout
 	hub := servernet.NewHub(zone)
 
 	go zone.Run(ctx)

@@ -188,12 +188,26 @@ function connectWS(name, el) {
   S.ws.onerror   = () => pushChat(null, 'Sistema', 'Error de conexión.');
 }
 
+// ── Map state ─────────────────────────────────────────────────────────────────
+const MAP = { tiles: null, width: 0, height: 0, tileSize: 32 };
+
 function onMessage({ data }) {
   const msg = JSON.parse(data);
   switch (msg.type) {
     case 'welcome':
       S.myID = msg.entity_id;
       pushChat(null, 'Sistema', `Conectado como ${msg.name} (entidad #${msg.entity_id})`);
+      break;
+    case 'map':
+      // tiles arrive as base64 ([]byte JSON encoding); decode to Uint8Array.
+      MAP.width    = msg.map_width;
+      MAP.height   = msg.map_height;
+      MAP.tileSize = msg.tile_size;
+      const b64 = msg.tiles;
+      const bin = atob(b64);
+      MAP.tiles = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) MAP.tiles[i] = bin.charCodeAt(i);
+      buildWallCache();
       break;
     case 'snapshot':
       S.entities = msg.entities ?? [];
@@ -203,6 +217,37 @@ function onMessage({ data }) {
     case 'chat':
       pushChat(msg.entity_id, msg.name, msg.text);
       break;
+  }
+}
+
+// Pre-render wall tiles onto an offscreen canvas so we only redraw them once.
+let wallCanvas = null;
+function buildWallCache() {
+  wallCanvas = document.createElement('canvas');
+  wallCanvas.width  = MAP.width  * MAP.tileSize;
+  wallCanvas.height = MAP.height * MAP.tileSize;
+  const wctx = wallCanvas.getContext('2d');
+  const ts = MAP.tileSize;
+
+  for (let ty = 0; ty < MAP.height; ty++) {
+    for (let tx = 0; tx < MAP.width; tx++) {
+      const t = MAP.tiles[ty * MAP.width + tx];
+      const px = tx * ts, py = ty * ts;
+      if (t === 2) {           // floor
+        wctx.fillStyle = '#1a1f2e';
+        wctx.fillRect(px, py, ts, ts);
+        wctx.fillStyle = '#1e2438';
+        wctx.fillRect(px+1, py+1, ts-2, ts-2);
+      } else if (t === 1) {   // wall
+        wctx.fillStyle = '#0d1117';
+        wctx.fillRect(px, py, ts, ts);
+        wctx.fillStyle = '#2d3748';
+        wctx.fillRect(px, py, ts-1, ts-1);
+        wctx.fillStyle = '#374151';
+        wctx.fillRect(px+2, py+2, ts-5, ts-5);
+      }
+      // void = transparent (default)
+    }
   }
 }
 
@@ -298,15 +343,34 @@ function render() {
   const cam = camera(me);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  drawGrid(cam);
-  drawOriginMarker(cam);
+  if (wallCanvas) {
+    drawDungeon(cam);
+  } else {
+    drawGrid(cam);
+    drawOriginMarker(cam);
+  }
 
+  for (const e of S.entities) if (e.kind === 3) drawItem(e, cam);
   for (const e of S.entities) if (e.kind === 1) drawProjectile(e, cam);
+  for (const e of S.entities) if (e.kind === 2) drawMob(e, cam);
   for (const e of S.entities) if (e.kind === 0) drawPlayer(e, cam, e.id === S.myID);
 
   drawCrosshair(me, cam);
   drawChatOverlay();
   drawHUD(me);
+}
+
+// Draw the pre-rendered dungeon tilemap clipped to the viewport.
+function drawDungeon(cam) {
+  const srcX = Math.max(0, cam.x);
+  const srcY = Math.max(0, cam.y);
+  const dstX = srcX - cam.x;
+  const dstY = srcY - cam.y;
+  const w = Math.min(wallCanvas.width  - srcX, canvas.width  - dstX);
+  const h = Math.min(wallCanvas.height - srcY, canvas.height - dstY);
+  if (w > 0 && h > 0) {
+    ctx.drawImage(wallCanvas, srcX, srcY, w, h, dstX, dstY, w, h);
+  }
 }
 
 function drawGrid(cam) {
@@ -323,6 +387,65 @@ function drawOriginMarker(cam) {
   ctx.strokeStyle = '#2d3748'; ctx.lineWidth = 1;
   ctx.beginPath(); ctx.moveTo(x-16,y); ctx.lineTo(x+16,y); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(x,y-16); ctx.lineTo(x,y+16); ctx.stroke();
+}
+
+function drawMob(e, cam) {
+  const sx = e.x - cam.x, sy = e.y - cam.y;
+  const el = EL[e.element] ?? EL[0];
+  const R = 13;
+
+  // Diamond shape to distinguish from players.
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.rotate(Math.PI / 4);
+  ctx.beginPath();
+  ctx.rect(-R * 0.8, -R * 0.8, R * 1.6, R * 1.6);
+  ctx.fillStyle = el.color + 'cc';
+  ctx.strokeStyle = el.color;
+  ctx.lineWidth = 2;
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+
+  // HP bar
+  if (e.max_hp > 0) {
+    const bw = 38, bh = 4, by = sy - R - 10;
+    ctx.fillStyle = '#1e293b'; ctx.fillRect(sx - bw/2, by, bw, bh);
+    const ratio = Math.max(0, e.hp / e.max_hp);
+    ctx.fillStyle = ratio > .5 ? '#f87171' : '#fca5a5';
+    ctx.fillRect(sx - bw/2, by, bw * ratio, bh);
+  }
+
+  // Element tag
+  ctx.font = 'bold 9px monospace';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+  ctx.fillStyle = el.color;
+  ctx.fillText(el.name.toUpperCase(), sx, sy - R - 12);
+}
+
+function drawItem(e, cam) {
+  const sx = e.x - cam.x, sy = e.y - cam.y;
+  const R = 9;
+  const t = performance.now() / 600;
+  const bob = Math.sin(t + e.id) * 3;
+
+  // Glowing orb
+  const g = ctx.createRadialGradient(sx, sy + bob, 0, sx, sy + bob, R + 10);
+  g.addColorStop(0, '#4ade80cc');
+  g.addColorStop(1, 'transparent');
+  ctx.beginPath(); ctx.arc(sx, sy + bob, R + 10, 0, Math.PI * 2);
+  ctx.fillStyle = g; ctx.fill();
+
+  ctx.beginPath(); ctx.arc(sx, sy + bob, R, 0, Math.PI * 2);
+  ctx.fillStyle = '#166534';
+  ctx.strokeStyle = '#4ade80';
+  ctx.lineWidth = 2;
+  ctx.fill(); ctx.stroke();
+
+  ctx.fillStyle = '#86efac';
+  ctx.font = 'bold 11px monospace';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('+', sx, sy + bob);
 }
 
 function drawPlayer(e, cam, isMe) {
@@ -428,15 +551,21 @@ function drawChatOverlay() {
 }
 
 function drawHUD(me) {
-  ctx.fillStyle = 'rgba(0,0,0,.55)';
-  roundRect(ctx, 4, 4, 210, 44, 6); ctx.fill();
-  ctx.fillStyle = '#64748b'; ctx.font = '11px monospace';
-  ctx.textBaseline = 'top'; ctx.textAlign = 'left';
-  ctx.fillText(`Tick: ${S.tick}  ·  Entidades: ${S.entities.filter(e=>e.kind===0).length}`, 12, 10);
+  const mobs  = S.entities.filter(e => e.kind === 2).length;
+  const items = S.entities.filter(e => e.kind === 3).length;
+  const zone  = wallCanvas ? 'DUNGEON' : 'MUNDO';
+
+  ctx.fillStyle = 'rgba(0,0,0,.65)';
+  roundRect(ctx, 4, 4, 240, 58, 6); ctx.fill();
+
+  ctx.font = '11px monospace'; ctx.textBaseline = 'top'; ctx.textAlign = 'left';
+  ctx.fillStyle = '#64748b';
+  ctx.fillText(`${zone}  ·  Tick: ${S.tick}`, 12, 8);
+  ctx.fillText(`Jugadores: ${S.entities.filter(e=>e.kind===0).length}  Mobs: ${mobs}  Items: ${items}`, 12, 24);
   if (me) {
     const el = EL[me.element] ?? EL[0];
     ctx.fillStyle = el.color;
-    ctx.fillText(`${el.name}  ·  HP: ${me.hp}/${me.max_hp||100}`, 12, 26);
+    ctx.fillText(`${el.name}  ·  HP: ${me.hp}/${me.max_hp||100}`, 12, 40);
   }
 }
 

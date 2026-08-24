@@ -5,6 +5,7 @@ import "math"
 // systemMovement applies player inputs to entity positions each tick.
 // Movement speed comes from the player's element class stats.
 // Diagonal movement is clamped to the same speed as cardinal movement.
+// In dungeon zones, positions are pushed out of wall tiles after moving.
 func systemMovement(w *World, dt float32) {
 	for id, input := range w.inputs {
 		pos, ok := w.positions[id]
@@ -20,6 +21,7 @@ func systemMovement(w *World, dt float32) {
 		}
 		pos.X += dx * speed * dt
 		pos.Y += dy * speed * dt
+		pos = collideWithTiles(pos, w.Dungeon)
 		w.positions[id] = pos
 	}
 }
