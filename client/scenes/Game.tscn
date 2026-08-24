@@ -1,0 +1,84 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/Game.gd" id="1_game"]
+
+[node name="Game" type="Node2D"]
+script = ExtResource("1_game")
+
+[node name="Dungeon" type="Node2D" parent="."]
+
+[node name="Entities" type="Node2D" parent="."]
+
+[node name="Camera" type="Camera2D" parent="."]
+zoom = Vector2(2, 2)
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="BG" type="ColorRect" parent="HUD"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0)
+mouse_filter = 2
+
+[node name="Stats" type="VBoxContainer" parent="HUD"]
+layout_mode = 1
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 260.0
+offset_bottom = 80.0
+
+[node name="StatsBG" type="ColorRect" parent="HUD/Stats"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 70)
+color = Color(0, 0, 0, 0.6)
+mouse_filter = 2
+z_index = -1
+
+[node name="TickLabel" type="Label" parent="HUD/Stats"]
+layout_mode = 2
+text = "Tick: —"
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.392, 0.455, 0.545, 1)
+
+[node name="ElLabel" type="Label" parent="HUD/Stats"]
+layout_mode = 2
+text = "Elemento: —"
+theme_override_font_sizes/font_size = 11
+
+[node name="HPLabel" type="Label" parent="HUD/Stats"]
+layout_mode = 2
+text = "HP: —"
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.302, 0.937, 0.502, 1)
+
+[node name="Chat" type="VBoxContainer" parent="HUD"]
+layout_mode = 1
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 4.0
+offset_top = -180.0
+offset_right = -4.0
+offset_bottom = -4.0
+grow_vertical = 0
+
+[node name="ChatBG" type="ColorRect" parent="HUD/Chat"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 168)
+color = Color(0, 0, 0, 0.5)
+mouse_filter = 2
+z_index = -1
+
+[node name="Log" type="RichTextLabel" parent="HUD/Chat"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 128)
+bbcode_enabled = true
+scroll_following = true
+theme_override_font_sizes/normal_font_size = 11
+
+[node name="Input" type="LineEdit" parent="HUD/Chat"]
+layout_mode = 2
+placeholder_text = "[Enter] chatear  ·  WASD mover  ·  Click disparar"
+max_length = 128
