@@ -140,7 +140,7 @@ func systemShoot(w *World) {
 	}
 }
 
-// systemProjectile moves projectiles and checks for player hits.
+// systemProjectile moves projectiles and checks for player and mob hits.
 func systemProjectile(w *World, dt float32) {
 	var toRemove []entity.EntityID
 
@@ -155,6 +155,12 @@ func systemProjectile(w *World, dt float32) {
 		hit := false
 
 		if proj.TTL > 0 {
+			projEl := w.elements[id].Kind
+
+			ownerLevel := w.levels[proj.OwnerID].Current
+			lvMult := LevelDamageMultiplier(ownerLevel)
+
+			// ── Hit players ───────────────────────────────────────────────────
 			for playerID := range w.inputs {
 				if playerID == proj.OwnerID {
 					continue
@@ -163,13 +169,9 @@ func systemProjectile(w *World, dt float32) {
 				if !ok {
 					continue
 				}
-				// Swept sphere: test closest point on (prevPos → pos) to the player.
-				// This prevents fast projectiles from tunnelling through players.
 				cx, cy := closestOnSegment(prevPos.X, prevPos.Y, pos.X, pos.Y, ppos.X, ppos.Y)
 				if magnitude(ppos.X-cx, ppos.Y-cy) < PlayerRadius+proj.Radius {
-					projEl := w.elements[id].Kind
-					targetEl := w.elements[playerID].Kind
-					mult := damageMultiplier(projEl, targetEl)
+					mult := damageMultiplier(projEl, w.elements[playerID].Kind) * lvMult
 					dmg := int32(float32(proj.Damage) * mult)
 					h := w.healths[playerID]
 					h.Current -= dmg
@@ -179,6 +181,33 @@ func systemProjectile(w *World, dt float32) {
 					w.healths[playerID] = h
 					hit = true
 					break
+				}
+			}
+
+			// ── Hit mobs ──────────────────────────────────────────────────────
+			if !hit {
+				for mobID := range w.ais {
+					mpos, ok := w.positions[mobID]
+					if !ok {
+						continue
+					}
+					cx, cy := closestOnSegment(prevPos.X, prevPos.Y, pos.X, pos.Y, mpos.X, mpos.Y)
+					if magnitude(mpos.X-cx, mpos.Y-cy) < PlayerRadius+proj.Radius {
+						mult := damageMultiplier(projEl, w.elements[mobID].Kind) * lvMult
+						dmg := int32(float32(proj.Damage) * mult)
+						h := w.healths[mobID]
+						h.Current -= dmg
+						if h.Current < 0 {
+							h.Current = 0
+						}
+						w.healths[mobID] = h
+						// Track who lands the last hit for XP award
+						ai := w.ais[mobID]
+						ai.LastHitBy = proj.OwnerID
+						w.ais[mobID] = ai
+						hit = true
+						break
+					}
 				}
 			}
 		}
@@ -215,6 +244,10 @@ func systemRespawn(w *World) {
 			continue // mobs die permanently, handled by systemAI
 		}
 		if h.Current <= 0 {
+			// Recalculate max HP in case the player levelled up since spawning.
+			el := w.elements[id].Kind
+			lv := w.levels[id].Current
+			h.Max = BaseHP(el, lv)
 			h.Current = h.Max
 			w.healths[id] = h
 			w.positions[id] = entity.Position{X: spawnX, Y: spawnY}
@@ -222,10 +255,48 @@ func systemRespawn(w *World) {
 	}
 }
 
-// BaseHP returns the starting max-health for an element class.
-func BaseHP(el entity.ElementType) int32 {
-	return classBaseStats[el].BaseHP
+// BaseHP returns max HP for a player of the given element at the given level.
+func BaseHP(el entity.ElementType, level uint32) int32 {
+	if level < 1 {
+		level = 1
+	}
+	return classBaseStats[el].BaseHP + int32(level-1)*10
 }
+
+// BaseSpeed returns move speed for a player of the given element at the given level.
+func BaseSpeed(el entity.ElementType, level uint32) float32 {
+	if level < 1 {
+		level = 1
+	}
+	return classBaseStats[el].MoveSpeed + float32(level-1)*2
+}
+
+// LevelDamageMultiplier scales projectile damage by player level (+5% per level above 1).
+func LevelDamageMultiplier(level uint32) float32 {
+	if level < 1 {
+		level = 1
+	}
+	return 1.0 + float32(level-1)*0.05
+}
+
+// MobMaxHP returns max HP for a mob of the given level.
+func MobMaxHP(level uint32) int32 {
+	if level < 1 {
+		level = 1
+	}
+	return 30 * int32(level)
+}
+
+// MobMeleeDmg returns melee damage for a mob of the given level.
+func MobMeleeDmg(level uint32) int32 {
+	if level < 1 {
+		level = 1
+	}
+	return 5 + int32(level-1)*2
+}
+
+// MobXPReward returns XP awarded to the player who kills a mob of the given level.
+func MobXPReward(level uint32) uint32 { return level * 25 }
 
 // rotDir rotates (x,y) by angle defined by (s=sin, c=cos).
 func rotDir(x, y, s, c float32) (float32, float32) {

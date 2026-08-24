@@ -51,6 +51,9 @@ type EntitySnapshot struct {
 	Name    string             `json:"name,omitempty"`
 	Kind    EntityKind         `json:"kind"`
 	Element entity.ElementType `json:"element"`
+	Level   uint32             `json:"level"`
+	XP      uint32             `json:"xp,omitempty"`
+	XPNext  uint32             `json:"xp_next,omitempty"`
 }
 
 // WorldSnapshot is the server's authoritative world state at a given tick.
@@ -74,6 +77,7 @@ type World struct {
 	cooldowns   map[entity.EntityID]int32
 	ais         map[entity.EntityID]entity.AI
 	items       map[entity.EntityID]entity.Item
+	levels      map[entity.EntityID]entity.Level
 
 	tick   uint64
 	rng    *rand.Rand
@@ -97,6 +101,7 @@ func newWorld(rng *rand.Rand) *World {
 		cooldowns:   make(map[entity.EntityID]int32),
 		ais:         make(map[entity.EntityID]entity.AI),
 		items:       make(map[entity.EntityID]entity.Item),
+		levels:      make(map[entity.EntityID]entity.Level),
 		rng:         rng,
 
 		InputCh:    make(chan InputEvent, 256),
@@ -119,12 +124,18 @@ func NewDungeon(seed int64) *World {
 	for _, ms := range w.Dungeon.MobSpawns {
 		id := w.nextID
 		w.nextID++
+		lv := ms.Level
+		if lv < 1 {
+			lv = 1
+		}
+		maxHP := MobMaxHP(lv)
 		w.positions[id] = entity.Position{X: ms.X, Y: ms.Y}
-		w.healths[id] = entity.Health{Current: 60, Max: 60}
+		w.healths[id] = entity.Health{Current: maxHP, Max: maxHP}
 		el := entity.ElementType(ms.Element)
 		w.elements[id] = entity.Element{Kind: el}
 		w.names[id] = "Mob"
 		w.ais[id] = entity.AI{State: entity.AIIdle}
+		w.levels[id] = entity.Level{Current: lv}
 	}
 	return w
 }
@@ -181,6 +192,7 @@ func (w *World) processSpawns() {
 			w.elements[id] = req.El
 			w.names[id] = req.Name
 			w.cooldowns[id] = 0
+			w.levels[id] = entity.Level{Current: 1}
 			req.Result <- id
 		default:
 			return
@@ -200,6 +212,7 @@ func (w *World) processDespawns() {
 			delete(w.cooldowns, id)
 			delete(w.ais, id)
 			delete(w.items, id)
+			delete(w.levels, id)
 		default:
 			return
 		}
@@ -238,6 +251,7 @@ func (w *World) emitSnapshot() {
 		default:
 			kind = KindPlayer
 		}
+		lv := w.levels[id]
 		snap.Entities = append(snap.Entities, EntitySnapshot{
 			ID:      id,
 			X:       pos.X,
@@ -247,6 +261,9 @@ func (w *World) emitSnapshot() {
 			Name:    w.names[id],
 			Kind:    kind,
 			Element: w.elements[id].Kind,
+			Level:   lv.Current,
+			XP:      lv.XP,
+			XPNext:  entity.XPToNext(lv.Current),
 		})
 	}
 	select {

@@ -53,8 +53,18 @@ const (
 type AI struct {
 	State      AIState
 	TargetID   EntityID
-	MeleeTimer int32 // ticks until next melee hit is allowed
+	MeleeTimer int32    // ticks until next melee hit is allowed
+	LastHitBy  EntityID // last player to deal damage — receives XP on death
 }
+
+// Level tracks progression for players and mobs.
+type Level struct {
+	Current uint32
+	XP      uint32 // XP accumulated toward next level (players only)
+}
+
+// XPToNext returns XP needed to go from current to current+1.
+func XPToNext(current uint32) uint32 { return current * 50 }
 
 // ItemType identifies what a floor item does when picked up.
 type ItemType uint8

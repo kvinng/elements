@@ -1,0 +1,29 @@
+# Zips de assets originales (descargas locales, no van en repo)
+.assets/
+
+# Go binaries
+server/elements
+server/*.exe
+*.exe
+
+# Go build cache (no ignorar go.sum)
+server/vendor/
+
+# Godot import cache (generado automáticamente por el editor)
+client/.godot/
+client/**/.import/
+*.import
+
+# Godot export templates y builds
+client/export/
+client/*.pck
+client/*.apk
+client/*.ipa
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/

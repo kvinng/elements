@@ -13,7 +13,8 @@ func systemMovement(w *World, dt float32) {
 			continue
 		}
 		el := w.elements[id].Kind
-		speed := classBaseStats[el].MoveSpeed
+		lv := w.levels[id].Current
+		speed := BaseSpeed(el, lv)
 		dx, dy := input.MoveX, input.MoveY
 		if mag := magnitude(dx, dy); mag > 1.0 {
 			dx /= mag

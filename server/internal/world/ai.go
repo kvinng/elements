@@ -1,6 +1,8 @@
 package world
 
 import (
+	"log/slog"
+
 	"github.com/kving/games/elements/server/internal/dungeon"
 	"github.com/kving/games/elements/server/internal/entity"
 )
@@ -9,10 +11,10 @@ const (
 	aggroRange    float32 = 200 // units: enter chase when player is closer than this
 	deaggroRange  float32 = 280 // units: give up chase when player is farther than this
 	meleeRange    float32 = 22  // units: deal melee damage when this close
-	meleeDmg      int32   = 10
 	meleeCooldown int32   = 25  // ticks between hits (~1.25 s)
 	mobSpeed      float32 = 85  // units/sec
 	itemDropChance        = 40  // percent
+	maxLevel      uint32  = 100
 )
 
 // systemAI drives mob behaviour and handles mob death + item drops.
@@ -65,10 +67,11 @@ func systemAI(w *World, dt float32, rng interface{ Intn(int) int }) {
 			dist := magnitude(dx, dy)
 
 			if dist <= meleeRange {
-				// Melee attack.
+				// Melee attack — damage scales with mob level.
 				if ai.MeleeTimer <= 0 {
+					mobLv := w.levels[id].Current
 					th := w.healths[ai.TargetID]
-					th.Current -= meleeDmg
+					th.Current -= MobMeleeDmg(mobLv)
 					if th.Current < 0 {
 						th.Current = 0
 					}
@@ -88,14 +91,44 @@ func systemAI(w *World, dt float32, rng interface{ Intn(int) int }) {
 		w.ais[id] = ai
 	}
 
-	// ── mob death: drop item, remove entity ──────────────────────────────────
+	// ── mob death: award XP, drop item, remove entity ────────────────────────
 	for _, id := range dead {
+		ai := w.ais[id]
+		mobLv := w.levels[id].Current
 		pos := w.positions[id]
+
+		// Award XP to the player who landed the killing blow.
+		if ai.LastHitBy != 0 {
+			if lv, ok := w.levels[ai.LastHitBy]; ok {
+				xpGain := MobXPReward(mobLv)
+				lv.XP += xpGain
+				// Level-up loop (can gain multiple levels from one kill at low levels).
+				for lv.Current < maxLevel {
+					need := entity.XPToNext(lv.Current)
+					if lv.XP < need {
+						break
+					}
+					lv.XP -= need
+					lv.Current++
+					// Increase max HP and heal by the HP gain.
+					el := w.elements[ai.LastHitBy].Kind
+					newMax := BaseHP(el, lv.Current)
+					h := w.healths[ai.LastHitBy]
+					h.Max = newMax
+					h.Current = h.Max // level-up restaura HP completo
+					w.healths[ai.LastHitBy] = h
+					slog.Info("level up", "entity", ai.LastHitBy, "level", lv.Current)
+				}
+				w.levels[ai.LastHitBy] = lv
+			}
+		}
+
 		delete(w.positions, id)
 		delete(w.healths, id)
 		delete(w.elements, id)
 		delete(w.names, id)
 		delete(w.ais, id)
+		delete(w.levels, id)
 
 		if rng.Intn(100) < itemDropChance {
 			itemID := w.nextID

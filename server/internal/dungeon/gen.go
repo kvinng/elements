@@ -26,8 +26,12 @@ type Rect struct{ X, Y, W, H int }
 func (r Rect) CenterX() int { return r.X + r.W/2 }
 func (r Rect) CenterY() int { return r.Y + r.H/2 }
 
-// MobSpawn carries world-space coordinates and element kind for one mob.
-type MobSpawn struct{ X, Y float32; Element uint8 }
+// MobSpawn carries world-space coordinates, element and level for one mob.
+type MobSpawn struct {
+	X, Y    float32
+	Element uint8
+	Level   uint32
+}
 
 // Dungeon is the fully generated level.
 type Dungeon struct {
@@ -70,7 +74,9 @@ func Generate(width, height int, rng *rand.Rand) *Dungeon {
 	}
 
 	// Scatter mobs in every room except the first (player spawn).
+	// Mob level increases with room depth: rooms farther from spawn → higher level.
 	elems := []uint8{1, 2, 3, 4} // Fire, Water, Earth, Air
+	total := len(d.Rooms)
 	for i, r := range d.Rooms {
 		if i == 0 {
 			continue
@@ -83,6 +89,7 @@ func Generate(width, height int, rng *rand.Rand) *Dungeon {
 				X:       float32(tx*TileSize + TileSize/2),
 				Y:       float32(ty*TileSize + TileSize/2),
 				Element: elems[rng.Intn(len(elems))],
+				Level:   mobLevel(i, total, rng),
 			})
 		}
 	}
@@ -275,4 +282,26 @@ func max(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// mobLevel computes a mob level based on how far the room is from spawn.
+// Rooms near spawn: level 1-2. Rooms far away: up to level 8.
+// 5 % chance of an elite mob that is 5 levels higher (capped at 15).
+func mobLevel(roomIdx, totalRooms int, rng *rand.Rand) uint32 {
+	depth := float64(roomIdx) / float64(max(totalRooms-1, 1))
+	base := int(depth*7) + 1 // 1 at spawn-adjacent, 8 at furthest room
+	base += rng.Intn(3) - 1  // ±1 random variation
+	if base < 1 {
+		base = 1
+	}
+	if base > 10 {
+		base = 10
+	}
+	if rng.Intn(100) < 5 { // elite
+		base += 5
+		if base > 15 {
+			base = 15
+		}
+	}
+	return uint32(base)
 }
