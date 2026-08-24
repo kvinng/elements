@@ -101,7 +101,8 @@ func systemProjectile(w *World, dt float32) {
 	var toRemove []entity.EntityID
 
 	for id, proj := range w.projectiles {
-		pos := w.positions[id]
+		prevPos := w.positions[id]
+		pos := prevPos
 		pos.X += proj.VelX * dt
 		pos.Y += proj.VelY * dt
 		w.positions[id] = pos
@@ -118,7 +119,10 @@ func systemProjectile(w *World, dt float32) {
 				if !ok {
 					continue
 				}
-				if magnitude(ppos.X-pos.X, ppos.Y-pos.Y) < PlayerRadius+proj.Radius {
+				// Swept sphere: test closest point on (prevPos → pos) to the player.
+				// This prevents fast projectiles from tunnelling through players.
+				cx, cy := closestOnSegment(prevPos.X, prevPos.Y, pos.X, pos.Y, ppos.X, ppos.Y)
+				if magnitude(ppos.X-cx, ppos.Y-cy) < PlayerRadius+proj.Radius {
 					h := w.healths[playerID]
 					h.Current -= proj.Damage
 					if h.Current < 0 {
@@ -160,7 +164,23 @@ func systemRespawn(w *World) {
 	}
 }
 
-// rotDir rotates (x,y) by angle (s=sin, c=cos).
+// rotDir rotates (x,y) by angle defined by (s=sin, c=cos).
 func rotDir(x, y, s, c float32) (float32, float32) {
 	return x*c - y*s, x*s + y*c
+}
+
+// closestOnSegment returns the closest point on segment (ax,ay)→(bx,by) to (px,py).
+func closestOnSegment(ax, ay, bx, by, px, py float32) (float32, float32) {
+	dx, dy := bx-ax, by-ay
+	lenSq := dx*dx + dy*dy
+	if lenSq == 0 {
+		return ax, ay
+	}
+	t := ((px-ax)*dx + (py-ay)*dy) / lenSq
+	if t < 0 {
+		t = 0
+	} else if t > 1 {
+		t = 1
+	}
+	return ax + t*dx, ay + t*dy
 }
