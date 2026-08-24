@@ -15,18 +15,21 @@ type Msg struct {
 	Text     string `json:"text"`
 	Tick     uint64 `json:"tick"`
 	Entities []struct {
-		ID    uint64  `json:"id"`
-		X     float32 `json:"x"`
-		Y     float32 `json:"y"`
-		HP    int32   `json:"hp"`
-		MaxHP int32   `json:"max_hp"`
-		Name  string  `json:"name"`
-		Kind  uint8   `json:"kind"`
+		ID      uint64  `json:"id"`
+		X       float32 `json:"x"`
+		Y       float32 `json:"y"`
+		HP      int32   `json:"hp"`
+		MaxHP   int32   `json:"max_hp"`
+		Name    string  `json:"name"`
+		Kind    uint8   `json:"kind"`
+		Element uint8   `json:"element"`
 	} `json:"entities"`
 }
 
-func client(name string, mx, my, aimX, aimY float32, fire bool, done <-chan struct{}) {
-	conn, _, err := websocket.DefaultDialer.Dial("ws://localhost:8080/ws?name="+name, nil)
+var elementNames = [5]string{"None", "Fire", "Water", "Earth", "Air"}
+
+func client(name, element string, mx, my, aimX, aimY float32, fire bool, done <-chan struct{}) {
+	conn, _, err := websocket.DefaultDialer.Dial("ws://localhost:8080/ws?name="+name+"&element="+element, nil)
 	if err != nil {
 		fmt.Println(name, "dial error:", err)
 		return
@@ -61,8 +64,9 @@ func client(name string, mx, my, aimX, aimY float32, fire bool, done <-chan stru
 					if e.Kind == 1 {
 						kind = "proj "
 					}
-					fmt.Printf("  [%-5s] tick=%-5d %s #%-2d %-8s x=%-7.0f y=%-7.0f hp=%d/%d%s\n",
-						name, m.Tick, kind, e.ID, e.Name, e.X, e.Y, e.HP, e.MaxHP, tag)
+					elName := elementNames[e.Element]
+					fmt.Printf("  [%-5s] tick=%-5d %s #%-2d %-8s [%-5s] x=%-7.0f y=%-7.0f hp=%d/%d%s\n",
+						name, m.Tick, kind, e.ID, e.Name, elName, e.X, e.Y, e.HP, e.MaxHP, tag)
 				}
 			}
 		}
@@ -100,12 +104,13 @@ func sendChat(name, text string) {
 func main() {
 	done := make(chan struct{})
 
-	// Aang moves right, shoots right
-	go client("Aang", 0, 0, 1, 0, true, done)
+	// Aang (Air): fast, low HP, shoots right toward Zuko
+	go client("Aang", "air", 0, 0, 1, 0, true, done)
 	time.Sleep(100 * time.Millisecond)
 
-	// Zuko stays still, shoots left (toward Aang)
-	go client("Zuko", 0, 0, -1, 0, true, done)
+	// Zuko (Fire): balanced, shoots left toward Aang
+	// Fire beats Air → Zuko's shots do 1.5× to Aang; Aang's do 0.7× to Zuko
+	go client("Zuko", "fire", 0, 0, -1, 0, true, done)
 
 	// Chat message after 1 second
 	time.Sleep(1 * time.Second)

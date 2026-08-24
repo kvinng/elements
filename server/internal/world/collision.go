@@ -1,6 +1,10 @@
 package world
 
-import "github.com/kving/games/elements/server/internal/entity"
+import (
+	"sort"
+
+	"github.com/kving/games/elements/server/internal/entity"
+)
 
 // PlayerRadius is the collision circle radius for player entities (units).
 const PlayerRadius float32 = 14
@@ -12,6 +16,7 @@ func systemCollision(w *World) {
 	for id := range w.inputs {
 		ids = append(ids, id)
 	}
+	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
 
 	const minDist = PlayerRadius * 2
 

@@ -17,6 +17,12 @@ type elemStats struct {
 	Spread   bool // fires 3 projectiles in ±15° spread (Air)
 }
 
+// classStats defines passive player attributes per element.
+type classStats struct {
+	BaseHP    int32   // starting max HP
+	MoveSpeed float32 // units per second
+}
+
 // elementStats is indexed by entity.ElementType (0=None … 4=Air).
 var elementStats = [5]elemStats{
 	/* None  */ {Speed: 550, Damage: 18, TTL: 45, Radius: 5, Cooldown: 8},
@@ -24,6 +30,44 @@ var elementStats = [5]elemStats{
 	/* Water */ {Speed: 300, Damage: 15, TTL: 60, Radius: 6, Cooldown: 12},
 	/* Earth */ {Speed: 200, Damage: 35, TTL: 25, Radius: 8, Cooldown: 15},
 	/* Air   */ {Speed: 600, Damage: 8, TTL: 20, Radius: 4, Cooldown: 6, Spread: true},
+}
+
+// classBaseStats indexed by entity.ElementType.
+//
+// Fire  — balanced
+// Water — tanky, slow
+// Earth — very tanky, very slow
+// Air   — fragile, very fast
+var classBaseStats = [5]classStats{
+	/* None  */ {BaseHP: 100, MoveSpeed: 200},
+	/* Fire  */ {BaseHP: 100, MoveSpeed: 210},
+	/* Water */ {BaseHP: 130, MoveSpeed: 170},
+	/* Earth */ {BaseHP: 160, MoveSpeed: 140},
+	/* Air   */ {BaseHP: 70, MoveSpeed: 270},
+}
+
+// elementAdvantage[attacker][defender] → true when attacker beats defender.
+// Cycle: Fire > Air > Earth > Water > Fire.
+var elementAdvantage = [5][5]bool{
+	/* None  */ {},
+	/* Fire  */ {false, false, false, false, true},  // Fire beats Air
+	/* Water */ {false, true, false, false, false},  // Water beats Fire
+	/* Earth */ {false, false, true, false, false},  // Earth beats Water
+	/* Air   */ {false, false, false, true, false},  // Air beats Earth
+}
+
+// damageMultiplier returns 1.5 if attacker beats defender, 0.7 if defender beats attacker.
+func damageMultiplier(attacker, defender entity.ElementType) float32 {
+	if attacker == entity.ElementNone || defender == entity.ElementNone {
+		return 1.0
+	}
+	if elementAdvantage[attacker][defender] {
+		return 1.5
+	}
+	if elementAdvantage[defender][attacker] {
+		return 0.7
+	}
+	return 1.0
 }
 
 // sin/cos of 15° for the Air spread.
@@ -123,8 +167,12 @@ func systemProjectile(w *World, dt float32) {
 				// This prevents fast projectiles from tunnelling through players.
 				cx, cy := closestOnSegment(prevPos.X, prevPos.Y, pos.X, pos.Y, ppos.X, ppos.Y)
 				if magnitude(ppos.X-cx, ppos.Y-cy) < PlayerRadius+proj.Radius {
+					projEl := w.elements[id].Kind
+					targetEl := w.elements[playerID].Kind
+					mult := damageMultiplier(projEl, targetEl)
+					dmg := int32(float32(proj.Damage) * mult)
 					h := w.healths[playerID]
-					h.Current -= proj.Damage
+					h.Current -= dmg
 					if h.Current < 0 {
 						h.Current = 0
 					}
@@ -162,6 +210,11 @@ func systemRespawn(w *World) {
 			w.positions[id] = entity.Position{X: RespawnX, Y: RespawnY}
 		}
 	}
+}
+
+// BaseHP returns the starting max-health for an element class.
+func BaseHP(el entity.ElementType) int32 {
+	return classBaseStats[el].BaseHP
 }
 
 // rotDir rotates (x,y) by angle defined by (s=sin, c=cos).

@@ -2,9 +2,8 @@ package world
 
 import "math"
 
-const MoveSpeed float32 = 200 // units per second
-
 // systemMovement applies player inputs to entity positions each tick.
+// Movement speed comes from the player's element class stats.
 // Diagonal movement is clamped to the same speed as cardinal movement.
 func systemMovement(w *World, dt float32) {
 	for id, input := range w.inputs {
@@ -12,13 +11,15 @@ func systemMovement(w *World, dt float32) {
 		if !ok {
 			continue
 		}
+		el := w.elements[id].Kind
+		speed := classBaseStats[el].MoveSpeed
 		dx, dy := input.MoveX, input.MoveY
 		if mag := magnitude(dx, dy); mag > 1.0 {
 			dx /= mag
 			dy /= mag
 		}
-		pos.X += dx * MoveSpeed * dt
-		pos.Y += dy * MoveSpeed * dt
+		pos.X += dx * speed * dt
+		pos.Y += dy * speed * dt
 		w.positions[id] = pos
 	}
 }

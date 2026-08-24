@@ -149,7 +149,7 @@ func (h *Hub) ServeWS(w http.ResponseWriter, r *http.Request) {
 	result := make(chan entity.EntityID, 1)
 	h.zone.SpawnCh <- world.SpawnRequest{
 		Pos:    entity.Position{X: world.RespawnX, Y: world.RespawnY},
-		HP:     100,
+		HP:     world.BaseHP(el),
 		El:     entity.Element{Kind: el, Level: 1},
 		Name:   name,
 		Result: result,
