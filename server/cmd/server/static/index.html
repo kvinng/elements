@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Elements</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #0d0d1a; color: #e2e8f0;
+  font-family: 'Segoe UI', monospace;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  min-height: 100vh;
+}
+
+/* ── Lobby ────────────────────────────────── */
+#lobby { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+#lobby h1 {
+  font-size: 2.8rem; letter-spacing: 6px; font-weight: 900;
+  color: #f8fafc; text-shadow: 0 0 40px rgba(255,255,255,0.15);
+}
+#lobby h1 span { color: #f97316; }
+.subtitle { color: #4b5563; font-size: 0.78rem; letter-spacing: 2px; }
+
+#nameInput {
+  padding: 10px 18px; border-radius: 8px; border: 2px solid #374151;
+  background: #1e293b; color: #e2e8f0; font-size: 1rem; width: 260px;
+  outline: none; text-align: center; transition: border-color .2s;
+}
+#nameInput:focus { border-color: #64748b; }
+
+/* Element grid */
+.el-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px; width: 380px;
+}
+.el-grid .el-wide { grid-column: span 3; }
+
+.el-btn {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 12px 8px; border-radius: 10px; border: 2px solid #374151;
+  background: #111827; cursor: pointer; transition: all .15s;
+  color: #9ca3af;
+}
+.el-btn:hover { background: #1f2937; border-color: #4b5563; color: #e2e8f0; }
+.el-btn.active { color: #fff; }
+.el-btn .icon { font-size: 1.8rem; line-height: 1; }
+.el-btn .el-name { font-size: 0.75rem; font-weight: 700; margin-top: 4px; letter-spacing: 1px; }
+.el-btn .el-desc { font-size: 0.6rem; color: #6b7280; margin-top: 2px; text-align: center; }
+.el-btn.active .el-desc { color: inherit; opacity: 0.7; }
+
+/* Per-element accent colours applied via JS */
+.el-btn[data-el="fire"].active   { background:#431407; border-color:#f97316; color:#fed7aa; }
+.el-btn[data-el="water"].active  { background:#082f49; border-color:#60a5fa; color:#bae6fd; }
+.el-btn[data-el="earth"].active  { background:#1a2e05; border-color:#a3e635; color:#d9f99d; }
+.el-btn[data-el="air"].active    { background:#1c1917; border-color:#e2e8f0; color:#f8fafc; }
+.el-btn[data-el="none"].active   { background:#2e1065; border-color:#c084fc; color:#e9d5ff; }
+
+.el-detail { font-size: 0.78rem; color: #94a3b8; height: 18px; text-align: center; }
+
+#enterBtn {
+  padding: 12px 40px; border-radius: 8px; border: none; cursor: pointer;
+  background: #1e40af; color: #fff; font-size: 0.95rem; font-weight: 700;
+  letter-spacing: 1px; transition: background .2s; width: 260px;
+}
+#enterBtn:hover { background: #2563eb; }
+
+/* ── Game ─────────────────────────────────── */
+#game { display: none; flex-direction: column; align-items: center; gap: 0; }
+canvas { display: block; background: #111827; border: 1px solid #1f2937; cursor: crosshair; }
+#chatBar { display: flex; width: 800px; padding: 5px 0; }
+#chatInput {
+  flex: 1; padding: 7px 12px; border-radius: 6px;
+  border: 1px solid #1f2937; background: #111827;
+  color: #e2e8f0; font-size: 0.82rem; outline: none;
+}
+#chatInput:focus { border-color: #374151; }
+#chatInput::placeholder { color: #374151; }
+</style>
+</head>
+<body>
+
+<!-- ── Lobby ── -->
+<div id="lobby">
+  <div>
+    <h1>ELE<span>M</span>ENTS</h1>
+    <p class="subtitle">MMORPG · PROTOTYPE</p>
+  </div>
+
+  <input id="nameInput" placeholder="Tu nombre" maxlength="16" autocomplete="off">
+
+  <div class="el-grid" id="elGrid">
+    <button class="el-btn" data-el="fire">
+      <span class="icon">🔥</span>
+      <span class="el-name">FUEGO</span>
+      <span class="el-desc">Daño equilibrado · Velocidad media</span>
+    </button>
+    <button class="el-btn" data-el="water">
+      <span class="icon">💧</span>
+      <span class="el-name">AGUA</span>
+      <span class="el-desc">Alcance máximo · Daño bajo</span>
+    </button>
+    <button class="el-btn" data-el="earth">
+      <span class="icon">🪨</span>
+      <span class="el-name">TIERRA</span>
+      <span class="el-desc">Daño máximo · Muy lento</span>
+    </button>
+    <button class="el-btn" data-el="air">
+      <span class="icon">🌬️</span>
+      <span class="el-name">AIRE</span>
+      <span class="el-desc">Triple disparo · Rapidísimo</span>
+    </button>
+    <button class="el-btn" data-el="none">
+      <span class="icon">⚔️</span>
+      <span class="el-name">NO-MAESTRO</span>
+      <span class="el-desc">Precisión · Cadencia alta</span>
+    </button>
+    <div class="el-wide"><div class="el-detail" id="elDetail">Selecciona tu elemento</div></div>
+  </div>
+
+  <button id="enterBtn" onclick="enter()">Entrar al mundo</button>
+</div>
+
+<!-- ── Game ── -->
+<div id="game">
+  <canvas id="c" width="800" height="550"></canvas>
+  <div id="chatBar">
+    <input id="chatInput" placeholder="[Enter] chatear  ·  WASD mover  ·  Click / Espacio disparar" maxlength="128">
+  </div>
+</div>
+
+<script>
+// ── Element definitions ───────────────────────────────────────────────────────
+const EL = {
+  0: { name: 'No-Maestro', color:'#c084fc', glow:'rgba(192,132,252,.35)', proj:'#e879f9', detail:'Precisión · Cadencia alta' },
+  1: { name: 'Fuego',      color:'#f97316', glow:'rgba(249,115,22,.35)',  proj:'#fbbf24', detail:'Daño equilibrado · Velocidad media' },
+  2: { name: 'Agua',       color:'#60a5fa', glow:'rgba(96,165,250,.35)',  proj:'#7dd3fc', detail:'Alcance máximo · Daño bajo' },
+  3: { name: 'Tierra',     color:'#a3e635', glow:'rgba(163,230,53,.35)',  proj:'#bef264', detail:'Daño máximo · Proyectil pesado' },
+  4: { name: 'Aire',       color:'#e2e8f0', glow:'rgba(226,232,240,.35)', proj:'#f1f5f9', detail:'Triple disparo · Rapidísimo' },
+};
+const EL_KEY = { fire:1, water:2, earth:3, air:4, none:0 };
+
+// ── Lobby ─────────────────────────────────────────────────────────────────────
+let selectedEl = null;
+document.querySelectorAll('.el-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.el-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedEl = btn.dataset.el;
+    const info = EL[EL_KEY[selectedEl]];
+    document.getElementById('elDetail').textContent = info.detail;
+  });
+});
+
+document.getElementById('nameInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') enter();
+});
+
+function enter() {
+  const name = document.getElementById('nameInput').value.trim() || 'Anon';
+  const el   = selectedEl || 'fire';
+  document.getElementById('lobby').style.display = 'none';
+  document.getElementById('game').style.display  = 'flex';
+  connectWS(name, el);
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+const S = {
+  ws: null, myID: null,
+  entities: [], chatLog: [], tick: 0,
+  keys: {}, mouse: { cx: 400, cy: 275 },
+  firing: false, seq: 0,
+};
+
+// ── WebSocket ─────────────────────────────────────────────────────────────────
+function connectWS(name, el) {
+  S.ws = new WebSocket(`ws://${location.host}/ws?name=${encodeURIComponent(name)}&element=${el}`);
+  S.ws.onmessage = onMessage;
+  S.ws.onclose   = () => pushChat(null, 'Sistema', 'Desconectado.');
+  S.ws.onerror   = () => pushChat(null, 'Sistema', 'Error de conexión.');
+}
+
+function onMessage({ data }) {
+  const msg = JSON.parse(data);
+  switch (msg.type) {
+    case 'welcome':
+      S.myID = msg.entity_id;
+      pushChat(null, 'Sistema', `Conectado como ${msg.name} (entidad #${msg.entity_id})`);
+      break;
+    case 'snapshot':
+      S.entities = msg.entities ?? [];
+      S.tick     = msg.tick;
+      render();
+      break;
+    case 'chat':
+      pushChat(msg.entity_id, msg.name, msg.text);
+      break;
+  }
+}
+
+function pushChat(id, name, text) {
+  S.chatLog.push({ id, name, text });
+  if (S.chatLog.length > 30) S.chatLog.shift();
+}
+
+// ── Input loop (20 Hz) ────────────────────────────────────────────────────────
+const canvas    = document.getElementById('c');
+const chatInput = document.getElementById('chatInput');
+
+setInterval(() => {
+  if (!S.ws || S.ws.readyState !== WebSocket.OPEN) return;
+  const chatFocused = document.activeElement === chatInput;
+
+  let mx = 0, my = 0;
+  if (!chatFocused) {
+    if (S.keys['w'] || S.keys['ArrowUp'])    my = -1;
+    if (S.keys['s'] || S.keys['ArrowDown'])  my =  1;
+    if (S.keys['a'] || S.keys['ArrowLeft'])  mx = -1;
+    if (S.keys['d'] || S.keys['ArrowRight']) mx =  1;
+  }
+
+  const me = S.entities.find(e => e.id === S.myID);
+  let aimX = 0, aimY = 1;
+  if (me) {
+    const cam = camera(me);
+    const dx = (S.mouse.cx + cam.x) - me.x;
+    const dy = (S.mouse.cy + cam.y) - me.y;
+    const mag = Math.hypot(dx, dy);
+    if (mag > 0) { aimX = dx / mag; aimY = dy / mag; }
+  }
+
+  S.ws.send(JSON.stringify({
+    type: 'input', seq: ++S.seq,
+    move_x: mx, move_y: my,
+    fire: !chatFocused && S.firing,
+    aim_x: aimX, aim_y: aimY,
+  }));
+}, 50);
+
+// ── Keyboard ──────────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  // Never intercept events while any text input has focus.
+  if (document.activeElement.tagName === 'INPUT') {
+    if (e.key === 'Escape') { document.activeElement.blur(); e.preventDefault(); }
+    return;
+  }
+  if (e.key === 'Enter') { chatInput.focus(); e.preventDefault(); return; }
+  if (e.key === ' ')     { S.firing = true;   e.preventDefault(); return; }
+  S.keys[e.key] = true;
+  e.preventDefault();
+});
+document.addEventListener('keyup', e => {
+  S.keys[e.key] = false;
+  if (e.key === ' ') S.firing = false;
+});
+
+chatInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const text = chatInput.value.trim();
+    if (text && S.ws?.readyState === WebSocket.OPEN)
+      S.ws.send(JSON.stringify({ type: 'chat', text }));
+    chatInput.value = '';
+    chatInput.blur();
+    e.preventDefault();
+  }
+});
+
+// ── Mouse ─────────────────────────────────────────────────────────────────────
+canvas.addEventListener('mousemove', e => {
+  const r = canvas.getBoundingClientRect();
+  S.mouse.cx = e.clientX - r.left;
+  S.mouse.cy = e.clientY - r.top;
+});
+canvas.addEventListener('mousedown',  e => { if (e.button === 0) S.firing = true;  });
+canvas.addEventListener('mouseup',    e => { if (e.button === 0) S.firing = false; });
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+// ── Camera ────────────────────────────────────────────────────────────────────
+function camera(me) {
+  return me
+    ? { x: me.x - canvas.width / 2, y: me.y - canvas.height / 2 }
+    : { x: 0, y: 0 };
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+const ctx = canvas.getContext('2d');
+
+function render() {
+  const me  = S.entities.find(e => e.id === S.myID);
+  const cam = camera(me);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  drawGrid(cam);
+  drawOriginMarker(cam);
+
+  for (const e of S.entities) if (e.kind === 1) drawProjectile(e, cam);
+  for (const e of S.entities) if (e.kind === 0) drawPlayer(e, cam, e.id === S.myID);
+
+  drawCrosshair(me, cam);
+  drawChatOverlay();
+  drawHUD(me);
+}
+
+function drawGrid(cam) {
+  const size = 100;
+  ctx.strokeStyle = '#161d2e'; ctx.lineWidth = 1;
+  const ox = ((-cam.x % size) + size) % size;
+  const oy = ((-cam.y % size) + size) % size;
+  for (let x = ox; x < canvas.width;  x += size) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke(); }
+  for (let y = oy; y < canvas.height; y += size) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y);  ctx.stroke(); }
+}
+
+function drawOriginMarker(cam) {
+  const x = -cam.x, y = -cam.y;
+  ctx.strokeStyle = '#2d3748'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x-16,y); ctx.lineTo(x+16,y); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x,y-16); ctx.lineTo(x,y+16); ctx.stroke();
+}
+
+function drawPlayer(e, cam, isMe) {
+  const sx = e.x - cam.x, sy = e.y - cam.y;
+  const el = EL[e.element] ?? EL[0];
+  const R  = 14;
+
+  // Glow
+  const g = ctx.createRadialGradient(sx, sy, R * .5, sx, sy, R + 12);
+  g.addColorStop(0, isMe ? 'rgba(255,255,255,.25)' : el.glow);
+  g.addColorStop(1, 'transparent');
+  ctx.beginPath(); ctx.arc(sx, sy, R + 12, 0, Math.PI * 2);
+  ctx.fillStyle = g; ctx.fill();
+
+  // Shadow
+  ctx.beginPath(); ctx.arc(sx + 2, sy + 3, R, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(0,0,0,.4)'; ctx.fill();
+
+  // Body
+  ctx.beginPath(); ctx.arc(sx, sy, R, 0, Math.PI * 2);
+  ctx.fillStyle   = el.color;
+  ctx.strokeStyle = isMe ? '#fff' : 'rgba(255,255,255,.35)';
+  ctx.lineWidth   = isMe ? 2.5 : 1.5;
+  ctx.fill(); ctx.stroke();
+
+  if (e.hp <= 0) {
+    ctx.beginPath(); ctx.arc(sx, sy, R, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0,0,0,.65)'; ctx.fill();
+    ctx.fillStyle = '#ef4444'; ctx.font = 'bold 13px monospace';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('✕', sx, sy);
+    return;
+  }
+
+  // HP bar
+  const bw = 42, bh = 5, by = sy - R - 11;
+  ctx.fillStyle = '#1e293b'; ctx.fillRect(sx - bw/2, by, bw, bh);
+  const ratio = Math.max(0, e.hp / (e.max_hp || 100));
+  ctx.fillStyle = ratio > .5 ? '#4ade80' : ratio > .25 ? '#facc15' : '#f87171';
+  ctx.fillRect(sx - bw/2, by, bw * ratio, bh);
+  ctx.strokeStyle = '#374151'; ctx.lineWidth = 1;
+  ctx.strokeRect(sx - bw/2, by, bw, bh);
+
+  // Name + element tag
+  const label = (e.name || `#${e.id}`) + ' [' + (el.name) + ']';
+  ctx.font = `bold 10px monospace`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+  ctx.fillStyle = isMe ? '#fff' : el.color;
+  ctx.fillText(label, sx, by - 3);
+}
+
+function drawProjectile(e, cam) {
+  const sx = e.x - cam.x, sy = e.y - cam.y;
+  const el = EL[e.element] ?? EL[0];
+  // Radius varies: Earth=8, Water=6, Air=4, others=5 — just use a visual size
+  const R  = e.element === 3 ? 8 : e.element === 2 ? 6 : e.element === 4 ? 4 : 5;
+
+  const g = ctx.createRadialGradient(sx, sy, 0, sx, sy, R + 7);
+  g.addColorStop(0, el.proj);
+  g.addColorStop(1, 'transparent');
+  ctx.beginPath(); ctx.arc(sx, sy, R + 7, 0, Math.PI * 2);
+  ctx.fillStyle = g; ctx.fill();
+
+  ctx.beginPath(); ctx.arc(sx, sy, R, 0, Math.PI * 2);
+  ctx.fillStyle   = el.proj;
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth   = 1;
+  ctx.fill(); ctx.stroke();
+}
+
+function drawCrosshair(me, cam) {
+  if (!me) return;
+  const sx = S.mouse.cx, sy = S.mouse.cy;
+  const el = EL[me.element] ?? EL[0];
+  ctx.strokeStyle = el.color + 'aa'; ctx.lineWidth = 1.5;
+  const sz = 7;
+  ctx.beginPath(); ctx.moveTo(sx-sz,sy); ctx.lineTo(sx+sz,sy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(sx,sy-sz); ctx.lineTo(sx,sy+sz); ctx.stroke();
+
+  // Aim line
+  const mx = me.x - cam.x, my = me.y - cam.y;
+  ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(sx, sy);
+  ctx.strokeStyle = el.color + '28'; ctx.lineWidth = 1;
+  ctx.setLineDash([4, 6]); ctx.stroke(); ctx.setLineDash([]);
+}
+
+function drawChatOverlay() {
+  const last = S.chatLog.slice(-6);
+  if (!last.length) return;
+  const lh = 17, pad = 7;
+  const bh = last.length * lh + pad * 2;
+  const by = canvas.height - bh - 4;
+
+  ctx.fillStyle = 'rgba(0,0,0,.6)';
+  roundRect(ctx, 4, by, canvas.width - 8, bh, 6); ctx.fill();
+
+  ctx.font = '11px monospace'; ctx.textBaseline = 'top';
+  last.forEach((m, i) => {
+    const y = by + pad + i * lh;
+    ctx.fillStyle = m.id === S.myID ? '#fde68a' : m.name === 'Sistema' ? '#86efac' : '#93c5fd';
+    ctx.fillText((m.name ? m.name + ': ' : '') + m.text, 12, y);
+  });
+}
+
+function drawHUD(me) {
+  ctx.fillStyle = 'rgba(0,0,0,.55)';
+  roundRect(ctx, 4, 4, 210, 44, 6); ctx.fill();
+  ctx.fillStyle = '#64748b'; ctx.font = '11px monospace';
+  ctx.textBaseline = 'top'; ctx.textAlign = 'left';
+  ctx.fillText(`Tick: ${S.tick}  ·  Entidades: ${S.entities.filter(e=>e.kind===0).length}`, 12, 10);
+  if (me) {
+    const el = EL[me.element] ?? EL[0];
+    ctx.fillStyle = el.color;
+    ctx.fillText(`${el.name}  ·  HP: ${me.hp}/${me.max_hp||100}`, 12, 26);
+  }
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w,y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+  ctx.lineTo(x+r,y+h); ctx.arcTo(x,y+h,x,y+h-r,r);
+  ctx.lineTo(x,y+r); ctx.arcTo(x,y,x+r,y,r);
+  ctx.closePath();
+}
+</script>
+</body>
+</html>
