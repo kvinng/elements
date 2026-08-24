@@ -15,10 +15,33 @@ const EL_COLOR := [
 ]
 const EL_NAME := ["No-Maestro", "Fuego", "Agua", "Tierra", "Aire"]
 
-# Tile atlas coords en decorative_cracks_walls.png (16px, 8 cols × 32 rows).
-# Extraídos del .tmx original del pack: suelo en col 6 fila 0, muro en col 2 fila 0.
-const TILE_FLOOR := Vector2i(6, 0)
-const TILE_WALL  := Vector2i(2, 0)
+# Tileset: decorative_cracks_walls.png (16px, 8 cols × 32 rows).
+# Suelo: tile (5,9) — centro_lum=243, el más brillante del atlas.
+const TILE_FLOOR := Vector2i(5, 9)
+
+# Bitmask de 4 vecinos → coordenada de atlas.
+# Bits: N=1  E=2  S=4  W=8   (bit activo = ese vecino es muro)
+# Regla clave: S=0 (sur es suelo) → cara frontal visible → tiles fila 6 col 4-7 (bot≈68).
+#              N=0 y S=1         → cara trasera visible  → tiles fila 7 col 1-3 (bot=0).
+#              rodeado (15)      → interior oscuro        → tile (2,6).
+const WALL_BITMASK := [
+	Vector2i(0, 0),  #  0: aislado
+	Vector2i(5, 6),  #  1: solo N         → cara S visible
+	Vector2i(5, 6),  #  2: solo E         → cara S visible
+	Vector2i(5, 6),  #  3: N+E            → cara S visible
+	Vector2i(3, 7),  #  4: solo S         → cara N visible (top=40, bot=0)
+	Vector2i(1, 0),  #  5: N+S            → pasillo vertical
+	Vector2i(2, 7),  #  6: E+S            → cara N visible
+	Vector2i(3, 6),  #  7: N+E+S          → borde oeste
+	Vector2i(5, 6),  #  8: solo W         → cara S visible
+	Vector2i(5, 6),  #  9: N+W            → cara S visible
+	Vector2i(0, 0),  # 10: E+W            → pasillo horizontal
+	Vector2i(5, 6),  # 11: N+E+W          → CARA SUR (el más frecuente)
+	Vector2i(2, 7),  # 12: S+W            → cara N visible
+	Vector2i(1, 6),  # 13: N+S+W          → borde este
+	Vector2i(2, 7),  # 14: E+S+W          → cara N visible
+	Vector2i(2, 6),  # 15: rodeado        → interior oscuro
+]
 
 @onready var camera:       Camera2D      = $Camera
 @onready var dungeon_root: Node2D        = $Dungeon
@@ -88,36 +111,62 @@ func _make_frames(idle_tex: Texture2D, idle_n: int, walk_tex: Texture2D, walk_n:
 # ── Mapa del dungeon ──────────────────────────────────────────────────────────
 
 func _on_map(data: Dictionary) -> void:
-	var w: int    = data.get("map_width", 0)
-	var h: int    = data.get("map_height", 0)
+	var map_w: int  = data.get("map_width", 0)
+	var map_h: int  = data.get("map_height", 0)
 	var b64: String = data.get("tiles", "")
-	if w == 0 or b64.is_empty():
+	if map_w == 0 or b64.is_empty():
 		return
 	var raw: PackedByteArray = Marshalls.base64_to_raw(b64)
 
-	# TileSet con walls_floor.png (16px tiles → escala 2x = 32px en mundo)
-	var atlas := TileSetAtlasSource.new()
-	atlas.texture = load("res://assets/dungeon/decorative_cracks_walls.png") as Texture2D
-	atlas.texture_region_size = Vector2i(16, 16)
-	atlas.create_tile(TILE_FLOOR)
-	atlas.create_tile(TILE_WALL)
+	var wall_tex := load("res://assets/dungeon/decorative_cracks_walls.png") as Texture2D
 
-	var tileset := TileSet.new()
-	tileset.tile_size = Vector2i(16, 16)
-	tileset.add_source(atlas, 0)
+	# ── Capa de suelo (renderiza debajo de los muros) ──────────────────────
+	var floor_atlas := TileSetAtlasSource.new()
+	floor_atlas.texture = wall_tex
+	floor_atlas.texture_region_size = Vector2i(16, 16)
+	floor_atlas.create_tile(TILE_FLOOR)
+	var floor_ts := TileSet.new()
+	floor_ts.tile_size = Vector2i(16, 16)
+	floor_ts.add_source(floor_atlas, 0)
+	var floor_layer := TileMapLayer.new()
+	floor_layer.tile_set = floor_ts
+	floor_layer.scale    = Vector2(2.0, 2.0)
+	dungeon_root.add_child(floor_layer)
 
-	var tl := TileMapLayer.new()
-	tl.tile_set = tileset
-	tl.scale    = Vector2(2.0, 2.0)
-	dungeon_root.add_child(tl)
+	# ── Capa de muros con bitmask (encima del suelo) ───────────────────────
+	var wall_atlas := TileSetAtlasSource.new()
+	wall_atlas.texture = wall_tex
+	wall_atlas.texture_region_size = Vector2i(16, 16)
+	var _reg := {}
+	for tc in WALL_BITMASK:
+		var key := str(tc)
+		if not _reg.has(key):
+			wall_atlas.create_tile(tc)
+			_reg[key] = true
+	var wall_ts := TileSet.new()
+	wall_ts.tile_size = Vector2i(16, 16)
+	wall_ts.add_source(wall_atlas, 0)
+	var wall_layer := TileMapLayer.new()
+	wall_layer.tile_set = wall_ts
+	wall_layer.scale    = Vector2(2.0, 2.0)
+	dungeon_root.add_child(wall_layer)
 
-	for ty in range(h):
-		for tx in range(w):
-			var tile: int = raw[ty * w + tx]
-			if tile == 2:
-				tl.set_cell(Vector2i(tx, ty), 0, TILE_FLOOR)
-			elif tile == 1:
-				tl.set_cell(Vector2i(tx, ty), 0, TILE_WALL)
+	# ── Pintar tiles ───────────────────────────────────────────────────────
+	for ty in range(map_h):
+		for tx in range(map_w):
+			var v: int = raw[ty * map_w + tx]
+			if v == 0:
+				continue
+			# Suelo bajo todo (incluso bajo muros; transparencias de muro lo dejan ver)
+			floor_layer.set_cell(Vector2i(tx, ty), 0, TILE_FLOOR)
+			if v == 1:  # muro → bitmask de 4 vecinos
+				var bm: int = 0
+				if ty > 0         and raw[(ty-1)*map_w + tx]     == 1: bm |= 1  # N
+				if tx < map_w - 1 and raw[ty*map_w + (tx+1)]     == 1: bm |= 2  # E
+				if ty < map_h - 1 and raw[(ty+1)*map_w + tx]     == 1: bm |= 4  # S
+				if tx > 0         and raw[ty*map_w + (tx-1)]     == 1: bm |= 8  # W
+				var tile: Vector2i = WALL_BITMASK[bm]
+				wall_layer.set_cell(Vector2i(tx, ty), 0, tile)
 
 # ── Snapshot ──────────────────────────────────────────────────────────────────
 
