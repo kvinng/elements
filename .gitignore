@@ -1,6 +1,3 @@
-# Zips de assets originales (descargas locales, no van en repo)
-.assets/
-
 # Go binaries
 server/elements
 server/*.exe
