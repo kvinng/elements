@@ -94,29 +94,29 @@ canvas { display: block; background: #111827; border: 1px solid #1f2937; cursor:
     <button class="el-btn" data-el="fire">
       <span class="icon">🔥</span>
       <span class="el-name">FUEGO</span>
-      <span class="el-desc">Daño equilibrado · Velocidad media</span>
+      <span class="el-desc">100 HP · 210 vel · Daño x1.5 vs Aire</span>
     </button>
     <button class="el-btn" data-el="water">
       <span class="icon">💧</span>
       <span class="el-name">AGUA</span>
-      <span class="el-desc">Alcance máximo · Daño bajo</span>
+      <span class="el-desc">130 HP · 170 vel · Daño x1.5 vs Fuego</span>
     </button>
     <button class="el-btn" data-el="earth">
       <span class="icon">🪨</span>
       <span class="el-name">TIERRA</span>
-      <span class="el-desc">Daño máximo · Muy lento</span>
+      <span class="el-desc">160 HP · 140 vel · Daño x1.5 vs Agua</span>
     </button>
     <button class="el-btn" data-el="air">
       <span class="icon">🌬️</span>
       <span class="el-name">AIRE</span>
-      <span class="el-desc">Triple disparo · Rapidísimo</span>
+      <span class="el-desc">70 HP · 270 vel · Daño x1.5 vs Tierra</span>
     </button>
     <button class="el-btn" data-el="none">
       <span class="icon">⚔️</span>
       <span class="el-name">NO-MAESTRO</span>
-      <span class="el-desc">Precisión · Cadencia alta</span>
+      <span class="el-desc">100 HP · 200 vel · Sin ventaja elemental</span>
     </button>
-    <div class="el-wide"><div class="el-detail" id="elDetail">Selecciona tu elemento</div></div>
+    <div class="el-wide"><div class="el-detail" id="elDetail">Ciclo: 🔥 &gt; 🌬️ &gt; 🪨 &gt; 💧 &gt; 🔥  ·  ventaja +50% · desventaja -30%</div></div>
   </div>
 
   <button id="enterBtn" onclick="enter()">Entrar al mundo</button>
@@ -133,11 +133,16 @@ canvas { display: block; background: #111827; border: 1px solid #1f2937; cursor:
 <script>
 // ── Element definitions ───────────────────────────────────────────────────────
 const EL = {
-  0: { name: 'No-Maestro', color:'#c084fc', glow:'rgba(192,132,252,.35)', proj:'#e879f9', detail:'Precisión · Cadencia alta' },
-  1: { name: 'Fuego',      color:'#f97316', glow:'rgba(249,115,22,.35)',  proj:'#fbbf24', detail:'Daño equilibrado · Velocidad media' },
-  2: { name: 'Agua',       color:'#60a5fa', glow:'rgba(96,165,250,.35)',  proj:'#7dd3fc', detail:'Alcance máximo · Daño bajo' },
-  3: { name: 'Tierra',     color:'#a3e635', glow:'rgba(163,230,53,.35)',  proj:'#bef264', detail:'Daño máximo · Proyectil pesado' },
-  4: { name: 'Aire',       color:'#e2e8f0', glow:'rgba(226,232,240,.35)', proj:'#f1f5f9', detail:'Triple disparo · Rapidísimo' },
+  0: { name: 'No-Maestro', color:'#c084fc', glow:'rgba(192,132,252,.35)', proj:'#e879f9',
+       detail:'100HP · 200spd · Sin ventaja elemental · Proyectil rápido x3' },
+  1: { name: 'Fuego',      color:'#f97316', glow:'rgba(249,115,22,.35)',  proj:'#fbbf24',
+       detail:'100HP · 210spd · Vence a Aire (+50%) · Pierde vs Agua (-30%)' },
+  2: { name: 'Agua',       color:'#60a5fa', glow:'rgba(96,165,250,.35)',  proj:'#7dd3fc',
+       detail:'130HP · 170spd · Vence a Fuego (+50%) · Pierde vs Tierra (-30%)' },
+  3: { name: 'Tierra',     color:'#a3e635', glow:'rgba(163,230,53,.35)',  proj:'#bef264',
+       detail:'160HP · 140spd · Vence a Agua (+50%) · Pierde vs Aire (-30%)' },
+  4: { name: 'Aire',       color:'#e2e8f0', glow:'rgba(226,232,240,.35)', proj:'#f1f5f9',
+       detail:'70HP · 270spd · Triple disparo · Vence a Tierra (+50%) · Pierde vs Fuego (-30%)' },
 };
 const EL_KEY = { fire:1, water:2, earth:3, air:4, none:0 };
 
@@ -149,7 +154,9 @@ document.querySelectorAll('.el-btn').forEach(btn => {
     btn.classList.add('active');
     selectedEl = btn.dataset.el;
     const info = EL[EL_KEY[selectedEl]];
-    document.getElementById('elDetail').textContent = info.detail;
+    const detail = document.getElementById('elDetail');
+    detail.textContent = info.detail;
+    detail.style.color = info.color;
   });
 });
 
