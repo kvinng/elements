@@ -118,9 +118,13 @@ func New() *World { return newWorld(rand.New(rand.NewSource(0))) }
 
 // NewDungeon generates a dungeon zone: BSP tilemap + pre-spawned mobs.
 func NewDungeon(seed int64) *World {
+	return NewDungeonWithTheme(seed, "")
+}
+
+func NewDungeonWithTheme(seed int64, tileset string) *World {
 	rng := rand.New(rand.NewSource(seed))
 	w := newWorld(rng)
-	w.Dungeon = dungeon.Generate(80, 60, rng)
+	w.Dungeon = dungeon.Generate(80, 60, rng, seed, tileset)
 
 	// Pre-spawn mobs — safe because Run() hasn't started yet.
 	for _, ms := range w.Dungeon.MobSpawns {

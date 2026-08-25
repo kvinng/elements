@@ -35,6 +35,8 @@ type serverMsg struct {
 	Tiles     []byte  `json:"tiles,omitempty"`
 	SpawnX    float32 `json:"spawn_x,omitempty"`
 	SpawnY    float32 `json:"spawn_y,omitempty"`
+	Tileset   string  `json:"tileset,omitempty"`  // e.g. "walls_floor" → client loads res://assets/dungeon/<tileset>.json
+	Seed      int64   `json:"seed,omitempty"`     // dungeon seed for deterministic tile variation
 	// progression (welcome message)
 	Level  uint32 `json:"level,omitempty"`
 	XP     uint32 `json:"xp,omitempty"`
@@ -94,6 +96,8 @@ func buildMapMsg(d *dungeon.Dungeon) []byte {
 		Tiles:     flat,
 		SpawnX:    d.PlayerSpawn[0],
 		SpawnY:    d.PlayerSpawn[1],
+		Tileset:   d.Tileset,
+		Seed:      d.Seed,
 	})
 	return data
 }

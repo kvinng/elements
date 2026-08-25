@@ -40,12 +40,17 @@ type Dungeon struct {
 	Rooms         []Rect       // all rooms (index 0 = player spawn room)
 	PlayerSpawn   [2]float32   // world-space centre of Rooms[0]
 	MobSpawns     []MobSpawn
+	Seed          int64  // original seed — sent to client for deterministic tile variation
+	Tileset       string // JSON tileset name (e.g. "walls_floor"); client loads res://assets/dungeon/<tileset>.json
 }
 
 // Generate builds a dungeon of (width × height) tiles using rng for all
 // random decisions. width and height should be at least 32.
-func Generate(width, height int, rng *rand.Rand) *Dungeon {
-	d := &Dungeon{Width: width, Height: height}
+func Generate(width, height int, rng *rand.Rand, seed int64, tileset string) *Dungeon {
+	if tileset == "" {
+		tileset = "walls_floor"
+	}
+	d := &Dungeon{Width: width, Height: height, Seed: seed, Tileset: tileset}
 	d.Tiles = make([][]TileType, height)
 	for y := range d.Tiles {
 		d.Tiles[y] = make([]TileType, width)

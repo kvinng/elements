@@ -1,0 +1,23 @@
+{
+  "texture_file": "decorative_cracks_walls.png",
+  "tile_size": 16,
+  "source_id": 1,
+  "tiles": {
+    "muro_alto_top":                    [0, 0],
+    "muro_alto_bloque_1":               [0, 1],
+    "muro_alto_bloque_2":               [0, 2],
+    "muro_alto_bloque_3":               [0, 3],
+    "columna_grieta_top":               [1, 1],
+    "columna_grieta_mid":               [1, 2],
+    "columna_grieta_bottom":            [1, 3],
+    "grieta_muro_horizontal_izq":       [0, 6],
+    "grieta_muro_horizontal_mid":       [1, 6],
+    "grieta_muro_horizontal_der":       [2, 6],
+    "columna_fina_top":                 [3, 4],
+    "columna_fina_mid":                 [3, 5],
+    "columna_fina_bottom":              [3, 6],
+    "muro_oscuro_hueco_top":            [1, 11],
+    "muro_oscuro_hueco_mid":            [1, 12],
+    "muro_oscuro_hueco_bottom":         [1, 13]
+  }
+}
