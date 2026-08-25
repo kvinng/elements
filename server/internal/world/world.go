@@ -116,9 +116,13 @@ func newWorld(rng *rand.Rand) *World {
 // New creates an open-world zone (no dungeon tiles, no mobs).
 func New() *World { return newWorld(rand.New(rand.NewSource(0))) }
 
+var dungeonTilesets = []string{"walls_floor", "lava", "earth"}
+
 // NewDungeon generates a dungeon zone: BSP tilemap + pre-spawned mobs.
+// Tileset is chosen deterministically from the seed so the same seed always produces the same biome.
 func NewDungeon(seed int64) *World {
-	return NewDungeonWithTheme(seed, "")
+	tileset := dungeonTilesets[seed%int64(len(dungeonTilesets))]
+	return NewDungeonWithTheme(seed, tileset)
 }
 
 func NewDungeonWithTheme(seed int64, tileset string) *World {

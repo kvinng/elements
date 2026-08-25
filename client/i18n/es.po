@@ -39,6 +39,9 @@ msgstr "Escribe tu nombre de usuario"
 msgid "LOBBY_ERR_PASS_EMPTY"
 msgstr "Escribe tu contraseña"
 
+msgid "LOBBY_CONNECTING"
+msgstr "Conectando..."
+
 # ── Elementos ─────────────────────────────────────────────────────────────────
 msgid "EL_NONE"
 msgstr "No-Maestro"
@@ -78,7 +81,7 @@ msgid "HUD_LEVEL"
 msgstr "Nivel %d"
 
 msgid "HUD_LV_SHORT"
-msgstr "Lv.%d"
+msgstr "Lvl %d"
 
 # ── Sistema / Chat ────────────────────────────────────────────────────────────
 msgid "CHAT_SYSTEM"

@@ -9,8 +9,8 @@ signal map_received(data: Dictionary)
 signal chat_received(entity_id: int, player_name: String, text: String)
 signal disconnected()
 
-const BASE_URL := "http://localhost:8080"
-const WS_URL   := "ws://localhost:8080/ws"
+const BASE_URL := "http://127.0.0.1:8080"
+const WS_URL   := "ws://127.0.0.1:8080/ws"
 
 # Mapeo error_code del servidor → clave de tr().
 # Añadir aquí cualquier código nuevo que el servidor devuelva.
@@ -29,19 +29,17 @@ var _token := ""
 # ── Auth REST ─────────────────────────────────────────────────────────────────
 
 func login(player_name: String, password: String) -> void:
-	_post("/api/auth/login",
-		{"name": player_name, "password": password},
-		_on_auth_response)
+	_post("/api/auth/login", {"name": player_name, "password": password})
 
 func register(player_name: String, password: String, element: String) -> void:
-	_post("/api/auth/register",
-		{"name": player_name, "password": password, "element": element},
-		_on_auth_response)
+	_post("/api/auth/register", {"name": player_name, "password": password, "element": element})
 
-func _post(path: String, body: Dictionary, callback: Callable) -> void:
+func _post(path: String, body: Dictionary) -> void:
 	var http := HTTPRequest.new()
+	http.timeout = 10.0
 	add_child(http)
-	http.request_completed.connect(callback.bind(http))
+	http.request_completed.connect(func(result, code, headers, body_bytes):
+		_on_auth_response(result, code, headers, body_bytes, http))
 	var err := http.request(
 		BASE_URL + path,
 		["Content-Type: application/json"],
@@ -50,25 +48,27 @@ func _post(path: String, body: Dictionary, callback: Callable) -> void:
 	)
 	if err != OK:
 		http.queue_free()
-		emit_signal("auth_failed", tr("ERR_CONNECT_FAILED"))
+		auth_failed.emit(tr("ERR_CONNECT_FAILED"))
 
 func _on_auth_response(result: int, response_code: int, _headers: PackedStringArray,
 		body: PackedByteArray, http: HTTPRequest) -> void:
 	http.queue_free()
 	if result != HTTPRequest.RESULT_SUCCESS:
-		emit_signal("auth_failed", tr("ERR_NETWORK"))
+		push_warning("Network: HTTP falló result=%d" % result)
+		auth_failed.emit(tr("ERR_NETWORK"))
 		return
 	var data = JSON.parse_string(body.get_string_from_utf8())
 	if data == null:
-		emit_signal("auth_failed", tr("ERR_INVALID_RESPONSE"))
+		push_warning("Network: respuesta no es JSON: %s" % body.get_string_from_utf8())
+		auth_failed.emit(tr("ERR_INVALID_RESPONSE"))
 		return
 	if response_code >= 400:
 		var code: String = data.get("error_code", "")
 		var tr_key: String = ERROR_CODE_KEY.get(code, "ERR_UNKNOWN")
-		emit_signal("auth_failed", tr(tr_key))
+		auth_failed.emit(tr(tr_key))
 		return
 	_token = data.get("token", "")
-	emit_signal("auth_success", data)
+	auth_success.emit(data)
 
 # ── WebSocket ─────────────────────────────────────────────────────────────────
 

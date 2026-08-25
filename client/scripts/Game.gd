@@ -65,12 +65,20 @@ var _my_id: int = -1
 var _entities: Dictionary = {}
 var _firing: bool = false
 var _input_timer: float = 0.0
+var _el_power: float = 1.0        # 0..1, placeholder hasta que el server lo envíe
 
 # SpriteFrames compartidos (buildeados una vez, reutilizados por todas las entidades)
 var _frames_player: SpriteFrames
 var _frames_mob:    SpriteFrames
 
+# Barras de HUD creadas en código
+var _hp_bar_bg:  ColorRect
+var _hp_bar_fill: ColorRect
+var _chi_bar_bg:  ColorRect
+var _chi_bar_fill: ColorRect
+
 func _ready() -> void:
+	RenderingServer.set_default_clear_color(Color(0.04, 0.04, 0.08))
 	Network.connected.connect(_on_connected)
 	Network.snapshot_received.connect(_on_snapshot)
 	Network.map_received.connect(_on_map)
@@ -78,6 +86,7 @@ func _ready() -> void:
 	Network.disconnected.connect(_on_disconnected)
 	chat_input.text_submitted.connect(_send_chat)
 	_build_sprite_frames()
+	_build_hud_bars()
 
 # ── Sprites ────────────────────────────────────────────────────────────────────
 
@@ -114,6 +123,33 @@ func _make_frames(idle_tex: Texture2D, idle_n: int, walk_tex: Texture2D, walk_n:
 		sf.add_frame("walk", at)
 	return sf
 
+# ── HUD bars (creadas en código para no tocar la escena) ─────────────────────
+
+func _build_hud_bars() -> void:
+	var stats := $HUD/Stats
+
+	# ── Barra de HP ───────────────────────────────────────────────────────────
+	_hp_bar_bg = ColorRect.new()
+	_hp_bar_bg.color = Color(0.12, 0.06, 0.06)
+	_hp_bar_bg.custom_minimum_size = Vector2(160, 10)
+	stats.add_child(_hp_bar_bg)
+
+	_hp_bar_fill = ColorRect.new()
+	_hp_bar_fill.color = Color(0.85, 0.18, 0.18)
+	_hp_bar_fill.size = Vector2(160, 10)
+	_hp_bar_bg.add_child(_hp_bar_fill)
+
+	# ── Barra de Chi (energía elemental) ──────────────────────────────────────
+	_chi_bar_bg = ColorRect.new()
+	_chi_bar_bg.color = Color(0.08, 0.06, 0.18)
+	_chi_bar_bg.custom_minimum_size = Vector2(160, 10)
+	stats.add_child(_chi_bar_bg)
+
+	_chi_bar_fill = ColorRect.new()
+	_chi_bar_fill.color = Color(0.55, 0.22, 0.95)
+	_chi_bar_fill.size = Vector2(160, 10)
+	_chi_bar_bg.add_child(_chi_bar_fill)
+
 # ── Mapa del dungeon ──────────────────────────────────────────────────────────
 
 func _on_map(data: Dictionary) -> void:
@@ -134,17 +170,20 @@ func _on_map(data: Dictionary) -> void:
 		return
 	var sid := TileLoader.source_id(mapping)
 	var tile_set := TileLoader.build_tileset(mapping)
+	# Scale so every tile renders at TILE_SIZE px regardless of source tile_size.
+	var ts_size: int = mapping.get("_meta", {}).get("tile_size", 16)
+	var ts_scale := float(TILE_SIZE) / float(ts_size)
 
 	# ── Capa de suelo ──────────────────────────────────────────────────────
 	var floor_layer := TileMapLayer.new()
 	floor_layer.tile_set = tile_set
-	floor_layer.scale    = Vector2(2.0, 2.0)
+	floor_layer.scale    = Vector2(ts_scale, ts_scale)
 	dungeon_root.add_child(floor_layer)
 
 	# ── Capa de muros (encima del suelo) ───────────────────────────────────
 	var wall_layer := TileMapLayer.new()
 	wall_layer.tile_set = tile_set
-	wall_layer.scale    = Vector2(2.0, 2.0)
+	wall_layer.scale    = Vector2(ts_scale, ts_scale)
 	dungeon_root.add_child(wall_layer)
 
 	# ── Pintar tiles ───────────────────────────────────────────────────────
@@ -258,8 +297,18 @@ func _update_entity_node(node: Node2D, e: Dictionary) -> void:
 		var xp: int      = int(e.get("xp",      0))
 		var xp_next: int = int(e.get("xp_next", 50))
 		lv_label.text = tr("HUD_LEVEL") % lv
-		var ratio := clampf(float(xp) / float(max(xp_next, 1)), 0.0, 1.0)
-		xp_bar_fill.size.x = xp_bar_bg.size.x * ratio
+		var xp_ratio := clampf(float(xp) / float(max(xp_next, 1)), 0.0, 1.0)
+		xp_bar_fill.size.x = xp_bar_bg.size.x * xp_ratio
+		# Barra HP
+		if _hp_bar_bg and _hp_bar_fill:
+			var hp_ratio := clampf(float(hp) / float(max(max_hp, 1)), 0.0, 1.0)
+			_hp_bar_fill.size.x = _hp_bar_bg.size.x * hp_ratio
+			_hp_bar_fill.color = Color(0.85, 0.18, 0.18) if hp_ratio > 0.25 else Color(0.95, 0.5, 0.1)
+		# Barra Chi — color varía con el elemento
+		if _chi_bar_bg and _chi_bar_fill:
+			var el_col: Color = EL_COLOR[el_idx] if el_idx < EL_COLOR.size() else Color(0.55, 0.22, 0.95)
+			_chi_bar_fill.color = el_col
+			_chi_bar_fill.size.x = _chi_bar_bg.size.x * _el_power
 
 # ── Draw (HP bar, nombre, proyectiles, items) ─────────────────────────────────
 
@@ -273,16 +322,18 @@ func _draw_entity(node: Node2D) -> void:
 	var color: Color = EL_COLOR[el] if el < EL_COLOR.size() else Color.WHITE
 
 	match kind:
-		0:  # Jugador — nivel arriba, nombre abajo, HP bar al fondo
-			var font := ThemeDB.fallback_font
+		0:  # Jugador — "Name Lvl 99" en una línea, HP bar debajo
+			var font   := ThemeDB.fallback_font
 			var lv: int = node.get_meta("lv", 1)
-			# Nivel (oro) — línea superior, centrado
-			node.draw_string(font, Vector2(0, -PLAYER_R - 30), tr("HUD_LV_SHORT") % lv,
-					HORIZONTAL_ALIGNMENT_CENTER, -1, 8,
-					Color(1.0, 0.85, 0.2))
-			# Nombre — línea inferior, blanco si soy yo, color del elemento si es otro
-			node.draw_string(font, Vector2(0, -PLAYER_R - 20), ename,
-					HORIZONTAL_ALIGNMENT_CENTER, -1, 9,
+			var name_line := "%s Lvl %d" % [ename, lv]
+			# <Avatar> encima si el elemento es None (domina todos)
+			if el == 0:
+				var aw := font.get_string_size("<Avatar>", HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x
+				node.draw_string(font, Vector2(-aw * 0.5, -PLAYER_R - 34), "<Avatar>",
+						HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(1.0, 0.85, 0.2))
+			var nw := font.get_string_size(name_line, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
+			node.draw_string(font, Vector2(-nw * 0.5, -PLAYER_R - 21), name_line,
+					HORIZONTAL_ALIGNMENT_LEFT, -1, 12,
 					Color.WHITE if is_me else color)
 			_draw_hp_bar(node, PLAYER_R + 12.0, hp, max_hp)
 
@@ -294,8 +345,10 @@ func _draw_entity(node: Node2D) -> void:
 		2:  # Mob — HP bar y nivel
 			var mob_lv: int = node.get_meta("lv", 1)
 			var font := ThemeDB.fallback_font
-			node.draw_string(font, Vector2(0, -PLAYER_R - 22),
-					tr("HUD_LV_SHORT") % mob_lv, HORIZONTAL_ALIGNMENT_CENTER, -1, 9, color)
+			var mob_text := "Lvl %d" % mob_lv
+			var mw := font.get_string_size(mob_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
+			node.draw_string(font, Vector2(-mw * 0.5, -PLAYER_R - 22),
+					mob_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, color)
 			_draw_hp_bar(node, PLAYER_R + 8.0, hp, max_hp)
 
 		3:  # Item — orbe verde animado

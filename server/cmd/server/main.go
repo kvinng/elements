@@ -54,7 +54,7 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
-	zone := world.NewDungeon(42)
+	zone := world.NewDungeon(43) // 43%3=1 → lava biome
 	hub := servernet.NewHub(zone, st, authSvc)
 
 	go zone.Run(ctx)

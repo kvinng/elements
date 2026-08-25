@@ -1,0 +1,246 @@
+{
+  "tileset_info": {
+    "name": "Volcanic_Fire_Nation_Tileset",
+    "theme": "Volcanic / Fire Nation",
+    "art_style": "16/32-bit Retro Pixel Art",
+    "tile_dimensions": "32x32px",
+    "atlas_layout": "Modular Sprite Sheet"
+  },
+  "structures": [
+    {
+      "id": "volcano_grand_structure",
+      "name": "Erupting Volcano Landmark",
+      "grid_dimensions": "5x6 tiles",
+      "bounding_box": {
+        "x_start": 0,
+        "y_start": 0,
+        "width_tiles": 5,
+        "height_tiles": 6
+      },
+      "sub_components": [
+        {"name": "volcano_smoke_plume", "grid_pos": [0, 0, 4, 1]},
+        {"name": "volcano_crater_magma", "grid_pos": [1, 1, 3, 2]},
+        {"name": "volcano_basalt_slopes", "grid_pos": [0, 2, 4, 5]}
+      ]
+    }
+  ],
+  "categories": {
+    "floors_ground": [
+      {
+        "id": "tile_dark_ash_01",
+        "name": "Dark Ash Soil (Plain)",
+        "type": "ground",
+        "walkable": true,
+        "section": "Ground Tiles",
+        "grid_pos": [5, 0]
+      },
+      {
+        "id": "tile_dark_ash_02",
+        "name": "Dark Ash Soil (Variant)",
+        "type": "ground",
+        "walkable": true,
+        "section": "Ground Tiles",
+        "grid_pos": [6, 0]
+      },
+      {
+        "id": "tile_basalt_cracked_a",
+        "name": "Charcoal Basalt Ground",
+        "type": "ground",
+        "walkable": true,
+        "section": "Ground Tiles",
+        "grid_pos": [7, 0]
+      },
+      {
+        "id": "tile_magma_veins_dense",
+        "name": "Magma Veins Crust",
+        "type": "ground",
+        "walkable": true,
+        "section": "Ground Tiles",
+        "grid_pos": [8, 0]
+      },
+      {
+        "id": "tile_basalt_spire_embedded",
+        "name": "Ash Ground with Mini Spire",
+        "type": "ground_obstacle",
+        "walkable": false,
+        "section": "Ground Tiles",
+        "grid_pos": [6, 1]
+      }
+    ],
+    "liquids_lava": [
+      {
+        "id": "lava_stream_horizontal",
+        "name": "Horizontal Flowing Lava Stream",
+        "type": "hazard_liquid",
+        "walkable": false,
+        "section": "Lava Streams",
+        "grid_pos": [9, 0]
+      },
+      {
+        "id": "lava_stream_vertical",
+        "name": "Vertical Flowing Lava Stream",
+        "type": "hazard_liquid",
+        "walkable": false,
+        "section": "Lava Streams",
+        "grid_pos": [11, 0]
+      },
+      {
+        "id": "lava_stream_corner_top_left",
+        "name": "Lava Corner Top-Left",
+        "type": "hazard_liquid",
+        "walkable": false,
+        "section": "Lava Streams",
+        "grid_pos": [9, 1]
+      },
+      {
+        "id": "lava_stream_t_junction",
+        "name": "Lava T-Junction",
+        "type": "hazard_liquid",
+        "walkable": false,
+        "section": "Lava Streams",
+        "grid_pos": [10, 3]
+      },
+      {
+        "id": "lava_pool_center",
+        "name": "Open Lava Pool Center",
+        "type": "hazard_liquid",
+        "walkable": false,
+        "section": "Lava Streams",
+        "grid_pos": [11, 3]
+      }
+    ],
+    "walls_cliffs": [
+      {
+        "id": "cliff_basalt_front_left",
+        "name": "Basalt Cliff Face (Left Edge)",
+        "type": "wall",
+        "walkable": false,
+        "section": "Cliff/Wall Tiles",
+        "grid_pos": [13, 0]
+      },
+      {
+        "id": "cliff_basalt_front_center",
+        "name": "Basalt Cliff Face (Center)",
+        "type": "wall",
+        "walkable": false,
+        "section": "Cliff/Wall Tiles",
+        "grid_pos": [14, 0]
+      },
+      {
+        "id": "cliff_basalt_front_right",
+        "name": "Basalt Cliff Face (Right Edge)",
+        "type": "wall",
+        "walkable": false,
+        "section": "Cliff/Wall Tiles",
+        "grid_pos": [15, 0]
+      },
+      {
+        "id": "cliff_lava_fall_top",
+        "name": "Cliff Lava Fall Outlet",
+        "type": "wall_hazard",
+        "walkable": false,
+        "section": "Cliff/Wall Tiles",
+        "grid_pos": [14, 1]
+      },
+      {
+        "id": "cliff_obsidian_vein",
+        "name": "Cliff Wall with Glowing Heat Crack",
+        "type": "wall",
+        "walkable": false,
+        "section": "Cliff/Wall Tiles",
+        "grid_pos": [16, 1]
+      }
+    ],
+    "stairs_paths": [
+      {
+        "id": "stairs_carved_stone_straight",
+        "name": "Stone Stairs Front View",
+        "type": "stairs",
+        "walkable": true,
+        "elevation_change": "+1 Level",
+        "section": "Stairs",
+        "grid_pos": [13, 2]
+      },
+      {
+        "id": "stairs_carved_stone_left_side",
+        "name": "Stone Stairs Profile (Left-Facing Ledge)",
+        "type": "stairs",
+        "walkable": true,
+        "elevation_change": "+1 Level",
+        "section": "Stairs",
+        "grid_pos": [14, 2]
+      },
+      {
+        "id": "stairs_carved_stone_right_side",
+        "name": "Stone Stairs Profile (Right-Facing Ledge)",
+        "type": "stairs",
+        "walkable": true,
+        "elevation_change": "+1 Level",
+        "section": "Stairs",
+        "grid_pos": [15, 2]
+      },
+      {
+        "id": "path_stone_paved_straight",
+        "name": "Ash Stone Paved Path",
+        "type": "path",
+        "walkable": true,
+        "section": "Path Tiles",
+        "grid_pos": [5, 2]
+      },
+      {
+        "id": "path_stone_paved_curve",
+        "name": "Ash Stone Paved Arc",
+        "type": "path",
+        "walkable": true,
+        "section": "Path Tiles",
+        "grid_pos": [6, 3]
+      }
+    ],
+    "decorations_objects": [
+      {
+        "id": "deco_obsidian_spire_tall",
+        "name": "Tall Obsidian Pillar Spire",
+        "type": "prop_obstacle",
+        "grid_pos": [0, 7]
+      },
+      {
+        "id": "deco_basalt_rock_cluster",
+        "name": "Sharp Basalt Rock Cluster",
+        "type": "prop_obstacle",
+        "grid_pos": [1, 7]
+      },
+      {
+        "id": "deco_volcanic_vent_smoking",
+        "name": "Active Geothermal Vent",
+        "type": "prop_interactable",
+        "grid_pos": [2, 7]
+      },
+      {
+        "id": "deco_stone_bridge_segment",
+        "name": "Volcanic Stone Bridge Segment",
+        "type": "bridge_walkable",
+        "grid_pos": [4, 7]
+      }
+    ],
+    "animations": [
+      {
+        "id": "anim_lava_surface_flow",
+        "name": "Lava Flow Animation Cycle",
+        "frame_count": 4,
+        "grid_positions": [[9, 5], [10, 5], [11, 5], [12, 5]]
+      },
+      {
+        "id": "anim_lava_waterfall_cascade",
+        "name": "Lava Waterfall Animation Cycle",
+        "frame_count": 4,
+        "grid_positions": [[13, 5], [14, 5], [15, 5], [16, 5]]
+      },
+      {
+        "id": "anim_magma_burst_effect",
+        "name": "Magma Eruption Burst FX",
+        "frame_count": 4,
+        "grid_positions": [[13, 6], [14, 6], [15, 6], [16, 6]]
+      }
+    ]
+  }
+}

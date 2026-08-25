@@ -77,7 +77,7 @@ static func build_tileset(mapping: Dictionary) -> TileSet:
 			seen[k] = true
 
 	var ts := TileSet.new()
-	ts.tile_size = Vector2i(tile_size * 2, tile_size * 2)  # escala ×2 para mundo 32px
+	ts.tile_size = Vector2i(tile_size, tile_size)
 	ts.add_source(atlas, source_id)
 	return ts
 

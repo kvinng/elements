@@ -1,0 +1,18 @@
+{
+  "texture_file": "earth.jpg",
+  "tile_size": 32,
+  "source_id": 0,
+  "tiles": {
+    "suelo_gris":            [4, 0],
+    "suelo_gris_decorativo": [5, 0],
+    "suelo_piedra_interior": [6, 0],
+    "pared_top":             [7, 0],
+    "pared_front":           [7, 0],
+    "pared_izq":             [9, 0],
+    "pared_der":             [7, 0],
+    "esquina_top_izq":       [9, 0],
+    "esquina_top_der":       [7, 0],
+    "stairs_front":          [4, 2],
+    "path_sand":             [5, 2]
+  }
+}

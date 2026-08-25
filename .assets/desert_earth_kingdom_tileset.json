@@ -1,0 +1,150 @@
+{
+  "tileset_info": {
+    "name": "Desert_Earth_Kingdom_Tileset",
+    "theme": "Desert / Earth Kingdom (Si Wong Style)",
+    "art_style": "16-bit Retro Pixel Art",
+    "tile_dimensions": "32x32px",
+    "associated_image": "watermarked_img_8469802296034460921.jpg"
+  },
+  "structures": [
+    {
+      "id": "sandstone_desert_temple_entrance",
+      "name": "Sunken Desert Temple Landmark",
+      "grid_dimensions": "4x4 tiles",
+      "bounding_box": {
+        "x_start": 0,
+        "y_start": 0,
+        "width_tiles": 4,
+        "height_tiles": 4
+      },
+      "sub_components": [
+        {
+          "name": "temple_carved_archway",
+          "grid_pos": [
+            1,
+            1,
+            2,
+            2
+          ]
+        },
+        {
+          "name": "sandstone_pillars",
+          "grid_pos": [
+            0,
+            1,
+            4,
+            3
+          ]
+        },
+        {
+          "name": "sand_covered_roof",
+          "grid_pos": [
+            0,
+            0,
+            4,
+            1
+          ]
+        }
+      ]
+    }
+  ],
+  "categories": {
+    "floors_ground": [
+      {
+        "id": "tile_dune_sand_smooth",
+        "name": "Smooth Sand Dune Floor",
+        "type": "ground",
+        "walkable": true,
+        "grid_pos": [
+          4,
+          0
+        ]
+      },
+      {
+        "id": "tile_parched_cracked_clay",
+        "name": "Parched Cracked Clay Soil",
+        "type": "ground",
+        "walkable": true,
+        "grid_pos": [
+          5,
+          0
+        ]
+      },
+      {
+        "id": "tile_sandstone_temple_paving",
+        "name": "Ancient Sandstone Flagstone",
+        "type": "ground",
+        "walkable": true,
+        "grid_pos": [
+          6,
+          0
+        ]
+      }
+    ],
+    "walls_cliffs": [
+      {
+        "id": "cliff_sandstone_layer_front",
+        "name": "Layered Sandstone Cliff Face",
+        "type": "wall",
+        "walkable": false,
+        "grid_pos": [
+          7,
+          0
+        ]
+      },
+      {
+        "id": "cliff_cave_mouth_desert",
+        "name": "Canyon Wall Cave Opening",
+        "type": "wall_entrance",
+        "walkable": true,
+        "grid_pos": [
+          9,
+          0
+        ]
+      }
+    ],
+    "stairs_paths": [
+      {
+        "id": "stairs_carved_sandstone_front",
+        "name": "Carved Sandstone Staircase",
+        "type": "stairs",
+        "walkable": true,
+        "elevation_change": "+1 Level",
+        "grid_pos": [
+          4,
+          2
+        ]
+      },
+      {
+        "id": "path_packed_sand_trail",
+        "name": "Packed Sand Footpath",
+        "type": "path",
+        "walkable": true,
+        "grid_pos": [
+          5,
+          2
+        ]
+      }
+    ],
+    "decorations_objects": [
+      {
+        "id": "deco_saguaro_cactus_tall",
+        "name": "Tall Saguaro Cactus",
+        "type": "prop_obstacle",
+        "grid_pos": [
+          0,
+          5
+        ]
+      },
+      {
+        "id": "deco_weathered_desert_boulder",
+        "name": "Eroded Sandstone Rock",
+        "type": "prop_obstacle",
+        "grid_pos": [
+          2,
+          5
+        ]
+      }
+    ]
+  }
+}

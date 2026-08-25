@@ -79,22 +79,30 @@ func _on_enter() -> void:
 	if password.is_empty():
 		_show_error(tr("LOBBY_ERR_PASS_EMPTY"))
 		return
-	_busy = true
-	enter_btn.disabled = true
-	error_label.visible = false
+	_set_busy(true)
 
 	if _mode == "login":
 		Network.login(player_name, password)
 	else:
 		Network.register(player_name, password, _selected_element)
 
+func _set_busy(busy: bool) -> void:
+	_busy = busy
+	enter_btn.disabled = busy
+	mode_btn.disabled  = busy
+	name_input.editable = not busy
+	pass_input.editable = not busy
+	enter_btn.text = tr("LOBBY_CONNECTING") if busy else (
+		tr("LOBBY_BTN_REGISTER") if _mode == "register" else tr("LOBBY_BTN_LOGIN"))
+	if busy:
+		error_label.visible = false
+
 func _on_auth_success(_player_data: Dictionary) -> void:
 	Network.connect_ws()
 	get_tree().change_scene_to_file("res://scenes/Game.tscn")
 
 func _on_auth_failed(error: String) -> void:
-	_busy = false
-	enter_btn.disabled = false
+	_set_busy(false)
 	_show_error(error)
 
 func _show_error(msg: String) -> void:
