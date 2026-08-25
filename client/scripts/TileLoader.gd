@@ -8,7 +8,6 @@
 ##   var mapping = TileLoader.load_mapping("res://assets/dungeon/walls_floor.json")
 ##   var tile_set = TileLoader.build_tileset(mapping)
 ##   var coords   = TileLoader.coords(mapping, "pared_front")  # → Vector2i(1,2)
-class_name TileLoader
 
 ## Carga un JSON de tileset y devuelve el mapping completo.
 ## Retorna {} si el archivo no existe o hay error de parseo.

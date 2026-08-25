@@ -1,6 +1,7 @@
 ## Game.gd — Dungeon tiles + sprites animados + input + chat.
 extends Node2D
 
+const TileLoader   := preload("res://scripts/TileLoader.gd")
 const TILE_SIZE    := 32
 const PLAYER_R     := 14.0
 const INPUT_HZ     := 20.0
