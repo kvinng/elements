@@ -7,6 +7,11 @@ config_version=5
 
 Network="*res://scripts/Network.gd"
 
+[internationalization]
+
+locale/translations=PackedStringArray("res://i18n/es.po", "res://i18n/en.po")
+locale/fallback="es"
+
 [application]
 
 config/name="Elements"

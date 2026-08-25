@@ -8,14 +8,15 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/kving/games/elements/server/internal/entity"
+	"github.com/kving/games/elements/server/internal/store"
 	"github.com/kving/games/elements/server/internal/world"
 )
 
 const writeTimeout = 5 * time.Second
 
-// clientMsg is any message the client sends to the server.
+// clientMsg is any message the client can send after authentication.
 type clientMsg struct {
-	Type  string  `json:"type"`   // "input" | "chat"
+	Type  string  `json:"type"` // "input" | "chat"
 	Seq   uint32  `json:"seq"`
 	MoveX float32 `json:"move_x"`
 	MoveY float32 `json:"move_y"`
@@ -25,10 +26,13 @@ type clientMsg struct {
 	Text  string  `json:"text"`
 }
 
-// Client represents one connected player.
+// Client represents one connected, authenticated player.
 type Client struct {
 	entityID entity.EntityID
+	playerID store.PlayerID // database primary key — used to persist on disconnect
 	name     string
+	level    uint32 // kept in sync from snapshots for accurate save-on-disconnect
+	xp       uint32
 	conn     *websocket.Conn
 	send     chan []byte // pre-marshalled JSON from the hub
 	hub      *Hub
@@ -48,13 +52,14 @@ func (c *Client) writePump() {
 		Type:     "welcome",
 		EntityID: c.entityID,
 		Name:     c.name,
+		Level:    c.level,
+		XP:       c.xp,
+		XPNext:   entity.XPToNext(c.level),
 	})
 	if !send(welcome) {
 		return
 	}
 
-	// Send dungeon map immediately after welcome so the client can start
-	// rendering tiles before the first snapshot arrives.
 	if c.hub.mapBytes != nil {
 		if !send(c.hub.mapBytes) {
 			return

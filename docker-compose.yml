@@ -1,0 +1,13 @@
+services:
+  server:
+    build: ./server
+    ports:
+      - "8080:8080"
+    volumes:
+      - server_data:/app/data
+    environment:
+      DB_DSN: "file:/app/data/elements.db"
+    restart: unless-stopped
+
+volumes:
+  server_data:

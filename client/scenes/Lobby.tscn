@@ -24,11 +24,11 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -200.0
-offset_top = -250.0
+offset_top = -300.0
 offset_right = 200.0
-offset_bottom = 250.0
+offset_bottom = 300.0
 alignment = 1
-theme_override_constants/separation = 16
+theme_override_constants/separation = 14
 
 [node name="Title" type="Label" parent="VBox"]
 layout_mode = 2
@@ -47,9 +47,17 @@ theme_override_colors/font_color = Color(0.298, 0.337, 0.416, 1)
 [node name="NameInput" type="LineEdit" parent="VBox"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 44)
-placeholder_text = "Tu nombre"
+placeholder_text = "Nombre de usuario"
 alignment = 1
 max_length = 16
+
+[node name="PasswordInput" type="LineEdit" parent="VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 44)
+placeholder_text = "Contraseña"
+alignment = 1
+max_length = 64
+secret = true
 
 [node name="ElementGrid" type="GridContainer" parent="VBox"]
 layout_mode = 2
@@ -66,4 +74,20 @@ autowrap_mode = 3
 [node name="EnterBtn" type="Button" parent="VBox"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 48)
-text = "Entrar al mundo"
+text = "Iniciar sesión"
+
+[node name="ModeBtn" type="Button" parent="VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+text = "¿No tienes cuenta? Regístrate"
+flat = true
+theme_override_colors/font_color = Color(0.580, 0.635, 0.722, 1)
+
+[node name="ErrorLabel" type="Label" parent="VBox"]
+layout_mode = 2
+text = ""
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.973, 0.380, 0.380, 1)
+autowrap_mode = 3
+visible = false

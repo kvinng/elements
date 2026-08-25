@@ -1,0 +1,116 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Elements\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: es\n"
+
+# ── Lobby ─────────────────────────────────────────────────────────────────────
+msgid "LOBBY_TITLE"
+msgstr "ELEMENTS"
+
+msgid "LOBBY_SUBTITLE"
+msgstr "MMORPG · PROTOTYPE"
+
+msgid "LOBBY_NAME_PLACEHOLDER"
+msgstr "Nombre de usuario"
+
+msgid "LOBBY_PASS_PLACEHOLDER"
+msgstr "Contraseña"
+
+msgid "LOBBY_BTN_LOGIN"
+msgstr "Iniciar sesión"
+
+msgid "LOBBY_BTN_REGISTER"
+msgstr "Crear cuenta"
+
+msgid "LOBBY_TOGGLE_TO_REGISTER"
+msgstr "¿No tienes cuenta? Regístrate"
+
+msgid "LOBBY_TOGGLE_TO_LOGIN"
+msgstr "¿Ya tienes cuenta? Inicia sesión"
+
+msgid "LOBBY_ELEMENT_PROMPT"
+msgstr "Selecciona tu elemento"
+
+msgid "LOBBY_ERR_NAME_EMPTY"
+msgstr "Escribe tu nombre de usuario"
+
+msgid "LOBBY_ERR_PASS_EMPTY"
+msgstr "Escribe tu contraseña"
+
+# ── Elementos ─────────────────────────────────────────────────────────────────
+msgid "EL_NONE"
+msgstr "No-Maestro"
+
+msgid "EL_FIRE"
+msgstr "Fuego"
+
+msgid "EL_WATER"
+msgstr "Agua"
+
+msgid "EL_EARTH"
+msgstr "Tierra"
+
+msgid "EL_AIR"
+msgstr "Aire"
+
+msgid "EL_NONE_DESC"
+msgstr "100HP · 200spd · Sin ventaja elemental"
+
+msgid "EL_FIRE_DESC"
+msgstr "100HP · 210spd · Vence a Aire (+50%)"
+
+msgid "EL_WATER_DESC"
+msgstr "130HP · 170spd · Vence a Fuego (+50%)"
+
+msgid "EL_EARTH_DESC"
+msgstr "160HP · 140spd · Vence a Agua (+50%)"
+
+msgid "EL_AIR_DESC"
+msgstr "70HP · 270spd · Triple disparo · Vence a Tierra (+50%)"
+
+# ── HUD ───────────────────────────────────────────────────────────────────────
+msgid "HUD_HP"
+msgstr "HP: %d/%d"
+
+msgid "HUD_LEVEL"
+msgstr "Nivel %d"
+
+msgid "HUD_LV_SHORT"
+msgstr "Lv.%d"
+
+# ── Sistema / Chat ────────────────────────────────────────────────────────────
+msgid "CHAT_SYSTEM"
+msgstr "Sistema"
+
+msgid "CHAT_WELCOME"
+msgstr "Bienvenido, %s (#%d)"
+
+msgid "CHAT_DISCONNECTED"
+msgstr "Desconectado del servidor."
+
+# ── Errores del servidor (error_code → string visible) ───────────────────────
+msgid "ERR_NAME_TAKEN"
+msgstr "Ese nombre ya está en uso"
+
+msgid "ERR_BAD_CREDENTIALS"
+msgstr "Nombre o contraseña incorrectos"
+
+msgid "ERR_INVALID_REQUEST"
+msgstr "Solicitud inválida"
+
+msgid "ERR_INTERNAL_ERROR"
+msgstr "Error interno del servidor"
+
+msgid "ERR_NETWORK"
+msgstr "Error de red"
+
+msgid "ERR_INVALID_RESPONSE"
+msgstr "Respuesta inválida del servidor"
+
+msgid "ERR_CONNECT_FAILED"
+msgstr "No se pudo conectar al servidor"
+
+msgid "ERR_UNKNOWN"
+msgstr "Error desconocido"

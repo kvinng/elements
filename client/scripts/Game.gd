@@ -13,7 +13,13 @@ const EL_COLOR := [
 	Color(0.639, 0.898, 0.208),   # Earth — verde lima
 	Color(0.886, 0.910, 0.941),   # Air   — blanco
 ]
-const EL_NAME := ["No-Maestro", "Fuego", "Agua", "Tierra", "Aire"]
+# Claves de traducción indexadas por ElementType (0=None … 4=Air).
+const EL_NAME_KEY := ["EL_NONE", "EL_FIRE", "EL_WATER", "EL_EARTH", "EL_AIR"]
+
+func _el_name(el: int) -> String:
+	if el < EL_NAME_KEY.size():
+		return tr(EL_NAME_KEY[el])
+	return "?"
 
 # Tileset: decorative_cracks_walls.png (16px, 8 cols × 32 rows).
 # Suelo: tile (5,9) — centro_lum=243, el más brillante del atlas.
@@ -191,10 +197,10 @@ func _on_snapshot(entities: Array) -> void:
 
 func _on_connected(entity_id: int, player_name: String) -> void:
 	_my_id = entity_id
-	_add_chat_line("Sistema", "Conectado como %s (#%d)" % [player_name, entity_id])
+	_add_chat_line(tr("CHAT_SYSTEM"), tr("CHAT_WELCOME") % [player_name, entity_id])
 
 func _on_disconnected() -> void:
-	_add_chat_line("Sistema", "Desconectado del servidor.")
+	_add_chat_line(tr("CHAT_SYSTEM"), tr("CHAT_DISCONNECTED"))
 
 func _create_entity_node(id: int, kind: int) -> Node2D:
 	var node := Node2D.new()
@@ -253,13 +259,13 @@ func _update_entity_node(node: Node2D, e: Dictionary) -> void:
 			spr.modulate = col
 
 	if is_me:
-		hp_label.text     = "HP: %d/%d" % [hp, max_hp]
-		el_label.text     = EL_NAME[el_idx] if el_idx < EL_NAME.size() else "?"
+		hp_label.text     = tr("HUD_HP") % [hp, max_hp]
+		el_label.text     = _el_name(el_idx)
 		el_label.modulate = EL_COLOR[el_idx] if el_idx < EL_COLOR.size() else Color.WHITE
-		var lv: int     = int(e.get("level",   1))
-		var xp: int     = int(e.get("xp",      0))
+		var lv: int      = int(e.get("level",   1))
+		var xp: int      = int(e.get("xp",      0))
 		var xp_next: int = int(e.get("xp_next", 50))
-		lv_label.text = "Nivel %d" % lv
+		lv_label.text = tr("HUD_LEVEL") % lv
 		var ratio := clampf(float(xp) / float(max(xp_next, 1)), 0.0, 1.0)
 		xp_bar_fill.size.x = xp_bar_bg.size.x * ratio
 
@@ -275,13 +281,18 @@ func _draw_entity(node: Node2D) -> void:
 	var color: Color = EL_COLOR[el] if el < EL_COLOR.size() else Color.WHITE
 
 	match kind:
-		0:  # Jugador — nombre y HP bar encima del sprite
+		0:  # Jugador — nivel arriba, nombre abajo, HP bar al fondo
 			var font := ThemeDB.fallback_font
-			var label: String = ename + " [" + (EL_NAME[el] if el < EL_NAME.size() else "?") + "]"
-			node.draw_string(font, Vector2(-32, -PLAYER_R - 22), label,
-					HORIZONTAL_ALIGNMENT_LEFT, -1, 9,
+			var lv: int = node.get_meta("lv", 1)
+			# Nivel (oro) — línea superior, centrado
+			node.draw_string(font, Vector2(0, -PLAYER_R - 30), tr("HUD_LV_SHORT") % lv,
+					HORIZONTAL_ALIGNMENT_CENTER, -1, 8,
+					Color(1.0, 0.85, 0.2))
+			# Nombre — línea inferior, blanco si soy yo, color del elemento si es otro
+			node.draw_string(font, Vector2(0, -PLAYER_R - 20), ename,
+					HORIZONTAL_ALIGNMENT_CENTER, -1, 9,
 					Color.WHITE if is_me else color)
-			_draw_hp_bar(node, PLAYER_R + 8.0, hp, max_hp)
+			_draw_hp_bar(node, PLAYER_R + 12.0, hp, max_hp)
 
 		1:  # Proyectil — cuerpo procedural
 			var R := 5.0 if el != 3 else 8.0
@@ -291,8 +302,8 @@ func _draw_entity(node: Node2D) -> void:
 		2:  # Mob — HP bar y nivel
 			var mob_lv: int = node.get_meta("lv", 1)
 			var font := ThemeDB.fallback_font
-			node.draw_string(font, Vector2(-8, -PLAYER_R - 22),
-					"Lv%d" % mob_lv, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, color)
+			node.draw_string(font, Vector2(0, -PLAYER_R - 22),
+					tr("HUD_LV_SHORT") % mob_lv, HORIZONTAL_ALIGNMENT_CENTER, -1, 9, color)
 			_draw_hp_bar(node, PLAYER_R + 8.0, hp, max_hp)
 
 		3:  # Item — orbe verde animado

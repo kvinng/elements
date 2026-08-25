@@ -1,0 +1,116 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Elements\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: en\n"
+
+# ── Lobby ─────────────────────────────────────────────────────────────────────
+msgid "LOBBY_TITLE"
+msgstr "ELEMENTS"
+
+msgid "LOBBY_SUBTITLE"
+msgstr "MMORPG · PROTOTYPE"
+
+msgid "LOBBY_NAME_PLACEHOLDER"
+msgstr "Username"
+
+msgid "LOBBY_PASS_PLACEHOLDER"
+msgstr "Password"
+
+msgid "LOBBY_BTN_LOGIN"
+msgstr "Login"
+
+msgid "LOBBY_BTN_REGISTER"
+msgstr "Create account"
+
+msgid "LOBBY_TOGGLE_TO_REGISTER"
+msgstr "No account? Sign up"
+
+msgid "LOBBY_TOGGLE_TO_LOGIN"
+msgstr "Have an account? Login"
+
+msgid "LOBBY_ELEMENT_PROMPT"
+msgstr "Select your element"
+
+msgid "LOBBY_ERR_NAME_EMPTY"
+msgstr "Enter your username"
+
+msgid "LOBBY_ERR_PASS_EMPTY"
+msgstr "Enter your password"
+
+# ── Elements ──────────────────────────────────────────────────────────────────
+msgid "EL_NONE"
+msgstr "Non-Bender"
+
+msgid "EL_FIRE"
+msgstr "Fire"
+
+msgid "EL_WATER"
+msgstr "Water"
+
+msgid "EL_EARTH"
+msgstr "Earth"
+
+msgid "EL_AIR"
+msgstr "Air"
+
+msgid "EL_NONE_DESC"
+msgstr "100HP · 200spd · No elemental advantage"
+
+msgid "EL_FIRE_DESC"
+msgstr "100HP · 210spd · Beats Air (+50%)"
+
+msgid "EL_WATER_DESC"
+msgstr "130HP · 170spd · Beats Fire (+50%)"
+
+msgid "EL_EARTH_DESC"
+msgstr "160HP · 140spd · Beats Water (+50%)"
+
+msgid "EL_AIR_DESC"
+msgstr "70HP · 270spd · Triple shot · Beats Earth (+50%)"
+
+# ── HUD ───────────────────────────────────────────────────────────────────────
+msgid "HUD_HP"
+msgstr "HP: %d/%d"
+
+msgid "HUD_LEVEL"
+msgstr "Level %d"
+
+msgid "HUD_LV_SHORT"
+msgstr "Lv.%d"
+
+# ── System / Chat ─────────────────────────────────────────────────────────────
+msgid "CHAT_SYSTEM"
+msgstr "System"
+
+msgid "CHAT_WELCOME"
+msgstr "Welcome, %s (#%d)"
+
+msgid "CHAT_DISCONNECTED"
+msgstr "Disconnected from server."
+
+# ── Server error codes ────────────────────────────────────────────────────────
+msgid "ERR_NAME_TAKEN"
+msgstr "That name is already taken"
+
+msgid "ERR_BAD_CREDENTIALS"
+msgstr "Invalid username or password"
+
+msgid "ERR_INVALID_REQUEST"
+msgstr "Invalid request"
+
+msgid "ERR_INTERNAL_ERROR"
+msgstr "Internal server error"
+
+msgid "ERR_NETWORK"
+msgstr "Network error"
+
+msgid "ERR_INVALID_RESPONSE"
+msgstr "Invalid server response"
+
+msgid "ERR_CONNECT_FAILED"
+msgstr "Could not connect to server"
+
+msgid "ERR_UNKNOWN"
+msgstr "Unknown error"

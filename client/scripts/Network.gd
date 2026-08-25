@@ -1,30 +1,88 @@
-## Network.gd — Autoload singleton que gestiona la conexión WebSocket con el servidor Go.
-## Emite señales que el resto de escenas escuchan; nunca bloquea.
+## Network.gd — Autoload singleton. Gestiona auth REST y la conexión WebSocket.
 extends Node
 
-signal connected(entity_id: int, name: String)
+signal auth_success(player_data: Dictionary)
+signal auth_failed(error: String)
+signal connected(entity_id: int, player_name: String)
 signal snapshot_received(entities: Array)
 signal map_received(data: Dictionary)
-signal chat_received(entity_id: int, name: String, text: String)
+signal chat_received(entity_id: int, player_name: String, text: String)
 signal disconnected()
 
-const SERVER_URL := "ws://localhost:8080/ws"
+const BASE_URL := "http://localhost:8080"
+const WS_URL   := "ws://localhost:8080/ws"
 
-var _ws := WebSocketPeer.new()
+# Mapeo error_code del servidor → clave de tr().
+# Añadir aquí cualquier código nuevo que el servidor devuelva.
+const ERROR_CODE_KEY := {
+	"name_taken":       "ERR_NAME_TAKEN",
+	"bad_credentials":  "ERR_BAD_CREDENTIALS",
+	"invalid_request":  "ERR_INVALID_REQUEST",
+	"internal_error":   "ERR_INTERNAL_ERROR",
+}
+
+var _ws    := WebSocketPeer.new()
 var _state := WebSocketPeer.STATE_CLOSED
-var _seq := 0
+var _seq   := 0
+var _token := ""
 
-# Conecta al servidor con nombre y elemento elegido en el lobby.
-func connect_to_server(player_name: String, element: String) -> void:
-	var url = "%s?name=%s&element=%s" % [SERVER_URL, player_name.uri_encode(), element]
-	var err = _ws.connect_to_url(url)
+# ── Auth REST ─────────────────────────────────────────────────────────────────
+
+func login(player_name: String, password: String) -> void:
+	_post("/api/auth/login",
+		{"name": player_name, "password": password},
+		_on_auth_response)
+
+func register(player_name: String, password: String, element: String) -> void:
+	_post("/api/auth/register",
+		{"name": player_name, "password": password, "element": element},
+		_on_auth_response)
+
+func _post(path: String, body: Dictionary, callback: Callable) -> void:
+	var http := HTTPRequest.new()
+	add_child(http)
+	http.request_completed.connect(callback.bind(http))
+	var err := http.request(
+		BASE_URL + path,
+		["Content-Type: application/json"],
+		HTTPClient.METHOD_POST,
+		JSON.stringify(body)
+	)
+	if err != OK:
+		http.queue_free()
+		emit_signal("auth_failed", tr("ERR_CONNECT_FAILED"))
+
+func _on_auth_response(result: int, response_code: int, _headers: PackedStringArray,
+		body: PackedByteArray, http: HTTPRequest) -> void:
+	http.queue_free()
+	if result != HTTPRequest.RESULT_SUCCESS:
+		emit_signal("auth_failed", tr("ERR_NETWORK"))
+		return
+	var data = JSON.parse_string(body.get_string_from_utf8())
+	if data == null:
+		emit_signal("auth_failed", tr("ERR_INVALID_RESPONSE"))
+		return
+	if response_code >= 400:
+		var code: String = data.get("error_code", "")
+		var tr_key: String = ERROR_CODE_KEY.get(code, "ERR_UNKNOWN")
+		emit_signal("auth_failed", tr(tr_key))
+		return
+	_token = data.get("token", "")
+	emit_signal("auth_success", data)
+
+# ── WebSocket ─────────────────────────────────────────────────────────────────
+
+func connect_ws() -> void:
+	if _token.is_empty():
+		push_error("Network: connect_ws llamado sin token")
+		return
+	var err = _ws.connect_to_url(WS_URL + "?token=" + _token.uri_encode())
 	if err != OK:
 		push_error("WebSocket connect error: %d" % err)
 
 func disconnect_from_server() -> void:
 	_ws.close()
 
-# Llamar cada frame para procesar mensajes entrantes.
 func _process(_delta: float) -> void:
 	_ws.poll()
 	var new_state = _ws.get_ready_state()
@@ -57,20 +115,21 @@ func _handle_packet(raw: PackedByteArray) -> void:
 				int(msg.get("entity_id", 0)),
 				msg.get("name", ""),
 				msg.get("text", ""))
+		"error":
+			push_error("Server error: " + msg.get("text", ""))
 
-# ── Envío de mensajes ─────────────────────────────────────────────────────────
+# ── Envío ─────────────────────────────────────────────────────────────────────
 
 func send_input(move_x: float, move_y: float, firing: bool, aim_x: float, aim_y: float) -> void:
 	if _ws.get_ready_state() != WebSocketPeer.STATE_OPEN:
 		return
 	_seq += 1
-	var msg := {
+	_ws.send_text(JSON.stringify({
 		"type": "input", "seq": _seq,
 		"move_x": move_x, "move_y": move_y,
 		"fire": firing,
 		"aim_x": aim_x, "aim_y": aim_y,
-	}
-	_ws.send_text(JSON.stringify(msg))
+	}))
 
 func send_chat(text: String) -> void:
 	if _ws.get_ready_state() != WebSocketPeer.STATE_OPEN:

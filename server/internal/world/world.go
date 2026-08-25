@@ -34,10 +34,12 @@ type InputEvent struct {
 // SpawnRequest creates an entity from outside the simulation loop.
 // Result receives the new entity ID after the next tick processes the request.
 type SpawnRequest struct {
-	Pos    entity.Position
-	HP     int32
-	El     entity.Element
-	Name   string
+	Pos   entity.Position
+	HP    int32
+	El    entity.Element
+	Name  string
+	Level uint32 // initial level; 1 if zero
+	XP    uint32 // initial XP toward next level
 	Result chan<- entity.EntityID
 }
 
@@ -192,7 +194,11 @@ func (w *World) processSpawns() {
 			w.elements[id] = req.El
 			w.names[id] = req.Name
 			w.cooldowns[id] = 0
-			w.levels[id] = entity.Level{Current: 1}
+			lv := req.Level
+			if lv < 1 {
+				lv = 1
+			}
+			w.levels[id] = entity.Level{Current: lv, XP: req.XP}
 			req.Result <- id
 		default:
 			return
