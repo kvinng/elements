@@ -8,12 +8,24 @@ const (
 )
 
 // systemItems checks whether any player is close enough to pick up a floor item.
+// Gold items have a protection window (ProtectTicks > 0) during which only the
+// owner (the player who killed the mob) may collect them.
 func systemItems(w *World) {
 	var collected []entity.EntityID
 
 	for itemID, item := range w.items {
+		// Tick down protection counter.
+		if item.ProtectTicks > 0 {
+			item.ProtectTicks--
+			w.items[itemID] = item
+		}
+
 		ipos := w.positions[itemID]
 		for pid := range w.inputs {
+			// Enforce protection: skip this player if window is still active and they are not the owner.
+			if item.ProtectTicks > 0 && item.Owner != 0 && pid != item.Owner {
+				continue
+			}
 			ppos := w.positions[pid]
 			if magnitude(ppos.X-ipos.X, ppos.Y-ipos.Y) > pickupRange {
 				continue

@@ -76,6 +76,8 @@ const (
 
 // Item is attached to floor-item entities.
 type Item struct {
-	Kind   ItemType
-	Amount uint32 // gold quantity for ItemGold; unused for ItemHealth
+	Kind         ItemType
+	Amount       uint32   // gold quantity for ItemGold; unused for ItemHealth
+	Owner        EntityID // entity that may pick this up during the protection window
+	ProtectTicks int32    // ticks remaining where only Owner may pick this up; 0 = public
 }

@@ -8,13 +8,14 @@ import (
 )
 
 const (
-	aggroRange    float32 = 200 // units: enter chase when player is closer than this
-	deaggroRange  float32 = 280 // units: give up chase when player is farther than this
-	meleeRange    float32 = 22  // units: deal melee damage when this close
-	meleeCooldown int32   = 25  // ticks between hits (~1.25 s)
-	mobSpeed      float32 = 85  // units/sec
-	itemDropChance        = 40  // percent
-	maxLevel      uint32  = 100
+	aggroRange       float32 = 200 // units: enter chase when player is closer than this
+	deaggroRange     float32 = 280 // units: give up chase when player is farther than this
+	meleeRange       float32 = 22  // units: deal melee damage when this close
+	meleeCooldown    int32   = 25  // ticks between hits (~1.25 s)
+	mobSpeed         float32 = 85  // units/sec
+	itemDropChance           = 40  // percent
+	maxLevel         uint32  = 100
+	goldProtectTicks int32   = 200 // 10 s @ 20 Hz — only the killer can pick up gold during this window
 )
 
 // systemAI drives mob behaviour and handles mob death + item drops.
@@ -137,12 +138,15 @@ func systemAI(w *World, dt float32, rng interface{ Intn(int) int }) {
 			w.items[itemID] = entity.Item{Kind: entity.ItemHealth}
 		}
 		// Always drop gold (amount: mob_level × rand(1..3)).
+		// Protected for goldProtectTicks ticks — only the killer can pick it up during that window.
 		goldID := w.nextID
 		w.nextID++
 		w.positions[goldID] = pos
 		w.items[goldID] = entity.Item{
-			Kind:   entity.ItemGold,
-			Amount: uint32(mobLv) * uint32(rng.Intn(3)+1),
+			Kind:         entity.ItemGold,
+			Amount:       uint32(mobLv) * uint32(rng.Intn(3)+1),
+			Owner:        ai.LastHitBy,
+			ProtectTicks: goldProtectTicks,
 		}
 	}
 }
