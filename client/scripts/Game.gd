@@ -91,13 +91,21 @@ func _ready() -> void:
 
 # ── Sprites ────────────────────────────────────────────────────────────────────
 
+static func _load_tex(res_path: String) -> Texture2D:
+	var tex := load(res_path) as Texture2D
+	if tex == null:
+		var img := Image.load_from_file(ProjectSettings.globalize_path(res_path))
+		if img:
+			tex = ImageTexture.create_from_image(img)
+	return tex
+
 func _build_sprite_frames() -> void:
-	var male_idle := load("res://assets/characters/male_idle.png") as Texture2D
-	var male_walk := load("res://assets/characters/male_walk.png") as Texture2D
-	var orc_idle  := load("res://assets/mobs/orc_idle.png")       as Texture2D
-	var orc_walk  := load("res://assets/mobs/orc_walk.png")       as Texture2D
+	var male_idle := _load_tex("res://assets/characters/male_idle.png")
+	var male_walk := _load_tex("res://assets/characters/male_walk.png")
+	var orc_idle  := _load_tex("res://assets/mobs/orc_idle.png")
+	var orc_walk  := _load_tex("res://assets/mobs/orc_walk.png")
 	if not male_idle or not male_walk or not orc_idle or not orc_walk:
-		push_warning("Game: faltan texturas — cierra y reabre el proyecto en Godot para importarlas")
+		push_warning("Game: faltan texturas de sprites")
 		return
 	_frames_player = _make_frames(male_idle, 12, male_walk, 6)
 	_frames_mob    = _make_frames(orc_idle,  4,  orc_walk,  6)
@@ -242,12 +250,14 @@ func _create_entity_node(id: int, kind: int) -> Node2D:
 
 	match kind:
 		0, 2:  # Jugador y Mob — sprite animado
-			var spr := AnimatedSprite2D.new()
-			spr.name            = "Spr"
-			spr.sprite_frames   = _frames_player if kind == 0 else _frames_mob
-			spr.scale           = SPR_SCALE
-			spr.play("idle")
-			node.add_child(spr)
+			var frames := _frames_player if kind == 0 else _frames_mob
+			if frames:
+				var spr := AnimatedSprite2D.new()
+				spr.name          = "Spr"
+				spr.sprite_frames = frames
+				spr.scale         = SPR_SCALE
+				spr.play("idle")
+				node.add_child(spr)
 
 	# Draw callback para todos: HP bar y nombre en players/mobs, cuerpo completo en proyectiles/items
 	node.draw.connect(_draw_entity.bind(node))

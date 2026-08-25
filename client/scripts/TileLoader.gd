@@ -57,6 +57,11 @@ static func build_tileset(mapping: Dictionary) -> TileSet:
 
 	var tex := load(tex_path) as Texture2D
 	if tex == null:
+		# Fallback: carga directa sin import cache (funciona sin .godot/ del editor)
+		var img := Image.load_from_file(ProjectSettings.globalize_path(tex_path))
+		if img:
+			tex = ImageTexture.create_from_image(img)
+	if tex == null:
 		push_error("TileLoader: no se pudo cargar textura '%s'" % tex_path)
 		return TileSet.new()
 
