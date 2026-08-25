@@ -41,6 +41,7 @@ type serverMsg struct {
 	Level  uint32 `json:"level,omitempty"`
 	XP     uint32 `json:"xp,omitempty"`
 	XPNext uint32 `json:"xp_next,omitempty"`
+	Gold   uint32 `json:"gold,omitempty"`
 }
 
 // ChatEvent is a chat message from one client to be broadcast to all.
@@ -122,17 +123,18 @@ func (h *Hub) Run(ctx context.Context) {
 				close(c.send)
 				h.zone.DespawnCh <- c.entityID
 				// Persist progression asynchronously so we don't block the hub loop.
-				go h.store.Save(context.Background(), c.playerID, c.level, c.xp) //nolint:errcheck
+				go h.store.Save(context.Background(), c.playerID, c.level, c.xp, c.gold) //nolint:errcheck
 				slog.Info("client left", "entity_id", c.entityID, "name", c.name, "total", len(h.clients))
 			}
 
 		case snap := <-h.zone.SnapshotCh:
-			// Cache the latest level/xp for each connected player so we can
+			// Cache the latest level/xp/gold for each connected player so we can
 			// save accurate data on disconnect.
 			for _, e := range snap.Entities {
 				if c, ok := h.entityClients[e.ID]; ok {
 					c.level = e.Level
 					c.xp = e.XP
+					c.gold = e.Gold
 				}
 			}
 			data, err := json.Marshal(serverMsg{
@@ -240,6 +242,7 @@ func (h *Hub) ServeWS(w http.ResponseWriter, r *http.Request) {
 		Name:   player.Name,
 		Level:  player.Level,
 		XP:     player.XP,
+		Gold:   player.Gold,
 		Result: result,
 	}
 	id := <-result
@@ -250,6 +253,7 @@ func (h *Hub) ServeWS(w http.ResponseWriter, r *http.Request) {
 		name:     player.Name,
 		level:    player.Level,
 		xp:       player.XP,
+		gold:     player.Gold,
 		conn:     conn,
 		send:     make(chan []byte, 16),
 		hub:      h,

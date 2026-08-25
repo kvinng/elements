@@ -23,6 +23,7 @@ const (
 	KindProjectile EntityKind = 1
 	KindMob        EntityKind = 2
 	KindItem       EntityKind = 3
+	KindGoldItem   EntityKind = 4
 )
 
 // InputEvent pairs an incoming input with the entity that sent it.
@@ -40,6 +41,7 @@ type SpawnRequest struct {
 	Name  string
 	Level uint32 // initial level; 1 if zero
 	XP    uint32 // initial XP toward next level
+	Gold  uint32 // gold accumulated by the player
 	Result chan<- entity.EntityID
 }
 
@@ -56,6 +58,7 @@ type EntitySnapshot struct {
 	Level   uint32             `json:"level"`
 	XP      uint32             `json:"xp,omitempty"`
 	XPNext  uint32             `json:"xp_next,omitempty"`
+	Gold    uint32             `json:"gold,omitempty"`
 }
 
 // WorldSnapshot is the server's authoritative world state at a given tick.
@@ -80,6 +83,7 @@ type World struct {
 	ais         map[entity.EntityID]entity.AI
 	items       map[entity.EntityID]entity.Item
 	levels      map[entity.EntityID]entity.Level
+	golds       map[entity.EntityID]uint32
 
 	tick   uint64
 	rng    *rand.Rand
@@ -104,6 +108,7 @@ func newWorld(rng *rand.Rand) *World {
 		ais:         make(map[entity.EntityID]entity.AI),
 		items:       make(map[entity.EntityID]entity.Item),
 		levels:      make(map[entity.EntityID]entity.Level),
+		golds:       make(map[entity.EntityID]uint32),
 		rng:         rng,
 
 		InputCh:    make(chan InputEvent, 256),
@@ -207,6 +212,7 @@ func (w *World) processSpawns() {
 				lv = 1
 			}
 			w.levels[id] = entity.Level{Current: lv, XP: req.XP}
+			w.golds[id] = req.Gold
 			req.Result <- id
 		default:
 			return
@@ -227,6 +233,7 @@ func (w *World) processDespawns() {
 			delete(w.ais, id)
 			delete(w.items, id)
 			delete(w.levels, id)
+			delete(w.golds, id)
 		default:
 			return
 		}
@@ -261,7 +268,11 @@ func (w *World) emitSnapshot() {
 		case isMob:
 			kind = KindMob
 		case isItem:
-			kind = KindItem
+			if w.items[id].Kind == entity.ItemGold {
+				kind = KindGoldItem
+			} else {
+				kind = KindItem
+			}
 		default:
 			kind = KindPlayer
 		}
@@ -278,6 +289,7 @@ func (w *World) emitSnapshot() {
 			Level:   lv.Current,
 			XP:      lv.XP,
 			XPNext:  entity.XPToNext(lv.Current),
+			Gold:    w.golds[id],
 		})
 	}
 	select {

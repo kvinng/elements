@@ -136,6 +136,14 @@ func systemAI(w *World, dt float32, rng interface{ Intn(int) int }) {
 			w.positions[itemID] = pos
 			w.items[itemID] = entity.Item{Kind: entity.ItemHealth}
 		}
+		// Always drop gold (amount: mob_level × rand(1..3)).
+		goldID := w.nextID
+		w.nextID++
+		w.positions[goldID] = pos
+		w.items[goldID] = entity.Item{
+			Kind:   entity.ItemGold,
+			Amount: uint32(mobLv) * uint32(rng.Intn(3)+1),
+		}
 	}
 }
 

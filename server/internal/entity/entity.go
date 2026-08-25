@@ -71,7 +71,11 @@ type ItemType uint8
 
 const (
 	ItemHealth ItemType = iota // restores HP
+	ItemGold                   // awards gold to the picking player
 )
 
 // Item is attached to floor-item entities.
-type Item struct{ Kind ItemType }
+type Item struct {
+	Kind   ItemType
+	Amount uint32 // gold quantity for ItemGold; unused for ItemHealth
+}

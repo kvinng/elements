@@ -83,6 +83,9 @@ msgstr "Nivel %d"
 msgid "HUD_LV_SHORT"
 msgstr "Lvl %d"
 
+msgid "HUD_GOLD"
+msgstr "Oro: %d"
+
 # ── Sistema / Chat ────────────────────────────────────────────────────────────
 msgid "CHAT_SYSTEM"
 msgstr "Sistema"

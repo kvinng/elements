@@ -77,6 +77,7 @@ var _hp_bar_bg:  ColorRect
 var _hp_bar_fill: ColorRect
 var _chi_bar_bg:  ColorRect
 var _chi_bar_fill: ColorRect
+var _gold_label: Label
 
 func _ready() -> void:
 	RenderingServer.set_default_clear_color(Color(0.04, 0.04, 0.08))
@@ -158,6 +159,12 @@ func _build_hud_bars() -> void:
 	_chi_bar_fill.color = Color(0.55, 0.22, 0.95)
 	_chi_bar_fill.size = Vector2(160, 10)
 	_chi_bar_bg.add_child(_chi_bar_fill)
+
+	# ── Etiqueta de oro ───────────────────────────────────────────────────────
+	_gold_label = Label.new()
+	_gold_label.text = tr("HUD_GOLD") % 0
+	_gold_label.modulate = Color(1.0, 0.84, 0.0)
+	stats.add_child(_gold_label)
 
 # ── Mapa del dungeon ──────────────────────────────────────────────────────────
 
@@ -320,6 +327,9 @@ func _update_entity_node(node: Node2D, e: Dictionary) -> void:
 			var el_col: Color = EL_COLOR[el_idx] if el_idx < EL_COLOR.size() else Color(0.55, 0.22, 0.95)
 			_chi_bar_fill.color = el_col
 			_chi_bar_fill.size.x = _chi_bar_bg.size.x * _el_power
+		# Oro
+		if _gold_label:
+			_gold_label.text = tr("HUD_GOLD") % int(e.get("gold", 0))
 
 # ── Draw (HP bar, nombre, proyectiles, items) ─────────────────────────────────
 
@@ -362,13 +372,21 @@ func _draw_entity(node: Node2D) -> void:
 					mob_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, color)
 			_draw_hp_bar(node, PLAYER_R + 8.0, hp, max_hp)
 
-		3:  # Item — orbe verde animado
+		3:  # Item de salud — orbe verde animado
 			var t  := Time.get_ticks_msec() / 600.0
 			var bob := sin(t + float(node.get_meta("eid", 0))) * 3.0
 			var pos := Vector2(0.0, bob)
 			node.draw_circle(pos, 12, Color(0.086, 0.396, 0.204, 0.5))
 			node.draw_circle(pos, 8,  Color(0.102, 0.396, 0.204))
 			node.draw_arc(pos, 8, 0, TAU, 16, Color(0.302, 0.937, 0.502), 2.0)
+
+		4:  # Item de oro — orbe dorado animado
+			var t  := Time.get_ticks_msec() / 600.0
+			var bob := sin(t + float(node.get_meta("eid", 0))) * 3.0
+			var pos := Vector2(0.0, bob)
+			node.draw_circle(pos, 12, Color(1.0, 0.84, 0.0, 0.4))
+			node.draw_circle(pos, 8,  Color(0.85, 0.65, 0.0))
+			node.draw_arc(pos, 8, 0, TAU, 16, Color(1.0, 0.95, 0.4), 2.0)
 
 func _draw_hp_bar(node: Node2D, above_r: float, hp: int, max_hp: int) -> void:
 	if max_hp <= 0:

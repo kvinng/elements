@@ -27,6 +27,8 @@ func systemItems(w *World) {
 					h.Current = h.Max
 				}
 				w.healths[pid] = h
+			case entity.ItemGold:
+				w.golds[pid] += item.Amount
 			}
 			collected = append(collected, itemID)
 			break // one player picks up this item

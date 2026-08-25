@@ -33,6 +33,7 @@ type Client struct {
 	name     string
 	level    uint32 // kept in sync from snapshots for accurate save-on-disconnect
 	xp       uint32
+	gold     uint32
 	conn     *websocket.Conn
 	send     chan []byte // pre-marshalled JSON from the hub
 	hub      *Hub
@@ -55,6 +56,7 @@ func (c *Client) writePump() {
 		Level:    c.level,
 		XP:       c.xp,
 		XPNext:   entity.XPToNext(c.level),
+		Gold:     c.gold,
 	})
 	if !send(welcome) {
 		return

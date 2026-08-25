@@ -67,11 +67,11 @@ func TestSave(t *testing.T) {
 	ctx := context.Background()
 
 	p, _ := st.Register(ctx, "saver", "pw", 1)
-	if err := st.Save(ctx, p.ID, 15, 370); err != nil {
+	if err := st.Save(ctx, p.ID, 15, 370, 500); err != nil {
 		t.Fatalf("save: %v", err)
 	}
 	p2, _ := st.Authenticate(ctx, "saver", "pw")
-	if p2.Level != 15 || p2.XP != 370 {
-		t.Fatalf("expected level=15 xp=370, got %+v", p2)
+	if p2.Level != 15 || p2.XP != 370 || p2.Gold != 500 {
+		t.Fatalf("expected level=15 xp=370 gold=500, got %+v", p2)
 	}
 }

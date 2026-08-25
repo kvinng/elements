@@ -15,6 +15,7 @@ type Player struct {
 	Element uint8
 	Level   uint32
 	XP      uint32
+	Gold    uint32
 }
 
 // PlayerStore abstracts all persistence operations.
@@ -29,7 +30,7 @@ type PlayerStore interface {
 	// state after validating a JWT (level/xp may have changed since token was issued).
 	GetByID(ctx context.Context, id PlayerID) (Player, error)
 	// Save persists progression. Called when a player disconnects.
-	Save(ctx context.Context, id PlayerID, level, xp uint32) error
+	Save(ctx context.Context, id PlayerID, level, xp, gold uint32) error
 	Close() error
 }
 

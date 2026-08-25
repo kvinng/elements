@@ -45,12 +45,20 @@ CREATE TABLE IF NOT EXISTS players (
     element    INTEGER NOT NULL DEFAULT 0,
     level      INTEGER NOT NULL DEFAULT 1,
     xp         INTEGER NOT NULL DEFAULT 0,
+    gold       INTEGER NOT NULL DEFAULT 0,
     updated_at INTEGER NOT NULL DEFAULT 0
 );`
 
 func (s *sqlStore) migrate() error {
-	_, err := s.db.Exec(schema)
-	return err
+	if _, err := s.db.Exec(schema); err != nil {
+		return err
+	}
+	// Idempotent: add gold column to tables created before this migration.
+	_, err := s.db.Exec(`ALTER TABLE players ADD COLUMN gold INTEGER NOT NULL DEFAULT 0`)
+	if err != nil && !strings.Contains(err.Error(), "duplicate column") {
+		return err
+	}
+	return nil
 }
 
 func (s *sqlStore) Register(ctx context.Context, name, password string, element uint8) (Player, error) {
@@ -76,8 +84,8 @@ func (s *sqlStore) Authenticate(ctx context.Context, name, password string) (Pla
 	var p Player
 	var hash string
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, name, password, element, level, xp FROM players WHERE name = ?`, name).
-		Scan(&p.ID, &p.Name, &hash, &p.Element, &p.Level, &p.XP)
+		`SELECT id, name, password, element, level, xp, gold FROM players WHERE name = ?`, name).
+		Scan(&p.ID, &p.Name, &hash, &p.Element, &p.Level, &p.XP, &p.Gold)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Player{}, ErrBadCredentials
 	}
@@ -93,18 +101,18 @@ func (s *sqlStore) Authenticate(ctx context.Context, name, password string) (Pla
 func (s *sqlStore) GetByID(ctx context.Context, id PlayerID) (Player, error) {
 	var p Player
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, name, element, level, xp FROM players WHERE id = ?`, id).
-		Scan(&p.ID, &p.Name, &p.Element, &p.Level, &p.XP)
+		`SELECT id, name, element, level, xp, gold FROM players WHERE id = ?`, id).
+		Scan(&p.ID, &p.Name, &p.Element, &p.Level, &p.XP, &p.Gold)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Player{}, ErrBadCredentials
 	}
 	return p, err
 }
 
-func (s *sqlStore) Save(ctx context.Context, id PlayerID, level, xp uint32) error {
+func (s *sqlStore) Save(ctx context.Context, id PlayerID, level, xp, gold uint32) error {
 	_, err := s.db.ExecContext(ctx,
-		`UPDATE players SET level=?, xp=?, updated_at=? WHERE id=?`,
-		level, xp, time.Now().Unix(), id,
+		`UPDATE players SET level=?, xp=?, gold=?, updated_at=? WHERE id=?`,
+		level, xp, gold, time.Now().Unix(), id,
 	)
 	return err
 }
